@@ -17,6 +17,14 @@
                 <param name="android-package" value="info.snowhow.plugin.GPSTrack"/>
             </feature>
         </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service android:name="info.snowhow.plugin.RecorderService">
+                <intent-filter>
+                    <action android:name="info.snowhow.plugin.GPSTrack" />
+                </intent-filter>
+            </service>
+            <receiver android:name="info.snowhow.plugin.RecorderService$RecorderServiceBroadcastReceiver" />
+        </config-file>
 
         <source-file src="src/android/GPSTrack.java" target-dir="src/info/snowhow/plugin" />
     </platform>

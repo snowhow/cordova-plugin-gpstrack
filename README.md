@@ -24,13 +24,3 @@ Uses cordova 3.0 plugin infrastructure, see http://cordova.apache.org/blog/relea
 
 This plugin starts GPS recording as an android **Service** and therefore keeps running, even if android kills the main cordova application.
 
-You need to modify your Androidmanifest.xml file for the service to work correctly
-```xml
-<service android:name="info.snowhow.plugin.RecorderService">
-  <intent-filter>
-      <action android:name="info.snowhow.plugin.GPSTrack" />
-  </intent-filter>
-</service>
-<receiver android:name="info.snowhow.plugin.RecorderService$RecorderServiceBroadcastReceiver" />
-
-```
