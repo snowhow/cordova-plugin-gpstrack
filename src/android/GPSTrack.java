@@ -25,7 +25,8 @@ public class GPSTrack extends CordovaPlugin {
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
     if (action.equals("record")) {
       final String trackFile = args.getString(0);
-      record(trackFile);
+      final double precision = args.getDouble(1);
+      record(trackFile, precision);
 //       cordova.getActivity().runOnUiThread(new Runnable() {
 //         @Override
 //         public void run() {
@@ -39,11 +40,12 @@ public class GPSTrack extends CordovaPlugin {
     return true;
   }
 
-  public void record(final String trackFile) {
+  public void record(final String trackFile, final double precision) {
     Context context = cordova.getActivity().getApplicationContext();
     Intent intent = new Intent(context, RecorderService.class);
     // intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     intent.putExtra("fileName", trackFile);
+    intent.putExtra("precision", precision);
     Log.d(LOG_TAG, "in record ... should start intent now");
     context.startService(intent);
   }

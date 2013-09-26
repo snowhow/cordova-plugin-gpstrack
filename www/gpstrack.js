@@ -19,8 +19,9 @@ var GPSTrack = function() {
  * record a track
  *
  * @param {String} track       Destination file
+ * @param {Float} precision    minimum precision of location (horizontal)
  */
-GPSTrack.prototype.record = function(track, succ, err) {
+GPSTrack.prototype.record = function(track, precision, succ, err) {
   var self = this;
   var win = function(result) {
     if (result.location) {
@@ -31,7 +32,7 @@ GPSTrack.prototype.record = function(track, succ, err) {
       succ(result);
     }
   };
-  exec(win, err, "GPSTrack", "record", [track]);
+  exec(win, err, "GPSTrack", "record", [track, precision]);
 };
 
 
