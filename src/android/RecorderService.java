@@ -60,7 +60,7 @@ public class RecorderService extends Service {
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 1; // in Meters
   private static final long MINIMUM_TIME_BETWEEN_UPDATES = 1000; // in Milliseconds
 
-  protected double minimumPrecision = 0;
+  protected float minimumPrecision = 0;
 
   protected boolean recording = false;
   protected boolean firstPoint = true;
@@ -136,6 +136,7 @@ public class RecorderService extends Service {
     if (intent == null) {
       Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       tf = sharedPref.getString("runningTrackFile", "");
+      minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
       int count = sharedPref.getInt("count", 0);
       if (count > 0) {
         firstPoint = false;
@@ -147,7 +148,9 @@ public class RecorderService extends Service {
       }
     } else {
       tf = intent.getStringExtra("fileName");
+      minimumPrecision = intent.getFloatExtra("precision", 0);
       editor.putString("runningTrackFile", tf);
+      editor.putFloat("runningPrecision", minimumPrecision);
       editor.commit();
     }
     // Intent bcRecI = new Intent(this, RecorderServiceBroadcastReceiver.class);
