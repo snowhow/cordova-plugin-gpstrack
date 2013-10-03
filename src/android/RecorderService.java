@@ -238,6 +238,17 @@ public class RecorderService extends Service {
     }
   }
 
+  public void deleteFile() {
+    try {
+      myWriter.close();
+      File delFile = new File(tf);
+      Log.d(LOG_TAG, "deleting file "+tf);
+      delFile.delete();
+    } catch (IOException e) {
+      Log.d(LOG_TAG, "io delete error. delete");
+    }
+  }
+
   public JSONObject initTrack(String trackName) {
     JSONObject obj = new JSONObject();
     JSONObject prop = new JSONObject();
@@ -259,6 +270,12 @@ public class RecorderService extends Service {
     public void onReceive(Context context, Intent intent) {
       // recording = false;
       // firstPoint = true;
+      if (locations == 0) {   // no locations recorded, delete file
+        deleteFile();
+        cleanUp();
+        Log.i(LOG_TAG, "cleaned up, file deleted (was empty)");
+        return;
+      }
       writeFile();
       JSONObject obj = new JSONObject();
       try {
