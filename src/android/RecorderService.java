@@ -60,7 +60,7 @@ public class RecorderService extends Service {
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 1; // in Meters
   private static final long MINIMUM_TIME_BETWEEN_UPDATES = 1000; // in Milliseconds
 
-  protected double minimumPrecision = 0;
+  protected float minimumPrecision = 0;
 
   protected boolean recording = false;
   protected boolean firstPoint = true;
@@ -136,6 +136,7 @@ public class RecorderService extends Service {
     if (intent == null) {
       Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       tf = sharedPref.getString("runningTrackFile", "");
+      minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
       int count = sharedPref.getInt("count", 0);
       if (count > 0) {
         firstPoint = false;
@@ -147,7 +148,9 @@ public class RecorderService extends Service {
       }
     } else {
       tf = intent.getStringExtra("fileName");
+      minimumPrecision = intent.getFloatExtra("precision", 0);
       editor.putString("runningTrackFile", tf);
+      editor.putFloat("runningPrecision", minimumPrecision);
       editor.commit();
     }
     // Intent bcRecI = new Intent(this, RecorderServiceBroadcastReceiver.class);
@@ -235,6 +238,17 @@ public class RecorderService extends Service {
     }
   }
 
+  public void deleteFile() {
+    try {
+      myWriter.close();
+      File delFile = new File(tf);
+      Log.d(LOG_TAG, "deleting file "+tf);
+      delFile.delete();
+    } catch (IOException e) {
+      Log.d(LOG_TAG, "io delete error. delete");
+    }
+  }
+
   public JSONObject initTrack(String trackName) {
     JSONObject obj = new JSONObject();
     JSONObject prop = new JSONObject();
@@ -256,6 +270,12 @@ public class RecorderService extends Service {
     public void onReceive(Context context, Intent intent) {
       // recording = false;
       // firstPoint = true;
+      if (locations == 0) {   // no locations recorded, delete file
+        deleteFile();
+        cleanUp();
+        Log.i(LOG_TAG, "cleaned up, file deleted (was empty)");
+        return;
+      }
       writeFile();
       JSONObject obj = new JSONObject();
       try {
