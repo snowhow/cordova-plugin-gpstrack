@@ -73,7 +73,7 @@ public class RecorderService extends Service {
   protected long start_ts = System.currentTimeMillis();
   protected CallbackContext cbctx;
 
-  protected MyLocationListener mll;
+  protected MyLocationListener mgpsll, mnetll;
   protected BroadcastReceiver bcrc;
   protected String tf;
   protected String ifString = "snowhow_gpstrack_intent";
@@ -95,7 +95,8 @@ public class RecorderService extends Service {
   @Override
   public void onCreate() {
     Log.d(LOG_TAG, "onCreate called in service");
-    mll = new MyLocationListener();
+    mgpsll = new MyLocationListener();
+    mnetll = new MyLocationListener();
     // Context context = intent.getApplicationContext();
     // ctx = getContext();
     // cordova = getBundleExtra("info.snowhow.plugin.GPSTrack.cordova");
@@ -169,7 +170,7 @@ public class RecorderService extends Service {
     nm.notify(0, note.build());
 
     recording = true;
-    Log.d(LOG_TAG, "this is handleIntent");
+    Log.d(LOG_TAG, "recording in handleIntent");
     try {
       // FileWriter file = new FileWriter(trackFile);
       myWriter = new RandomAccessFile(tf, "rw");
@@ -188,13 +189,13 @@ public class RecorderService extends Service {
       LocationManager.GPS_PROVIDER, 
       MINIMUM_TIME_BETWEEN_UPDATES, 
       MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
-      mll
+      mgpsll
     );
     locationManager.requestLocationUpdates(
       LocationManager.NETWORK_PROVIDER, 
       MINIMUM_TIME_BETWEEN_UPDATES, 
       MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
-      mll
+      mnetll
     );
     return START_STICKY;
   }
@@ -219,7 +220,8 @@ public class RecorderService extends Service {
 
 
   public void cleanUp() {
-    locationManager.removeUpdates(mll);
+    locationManager.removeUpdates(mgpsll);
+    locationManager.removeUpdates(mnetll);
     locationManager = null;
     SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
     editor.clear();
@@ -293,6 +295,8 @@ public class RecorderService extends Service {
 
   private class MyLocationListener implements LocationListener {
 
+    private boolean firstGPSfix = false;
+
     public MyLocationListener() {
       Log.d(LOG_TAG, "MyLocationListener started successfully");
     }
@@ -305,13 +309,19 @@ public class RecorderService extends Service {
         Log.d(LOG_TAG, "precision of position not good enough: "+location.getAccuracy()+"m, required: "+minimumPrecision+"m");
         return;
       }
+      if (location.getProvider().equals(LocationManager.GPS_PROVIDER) && firstGPSfix == false) {
+        Log.d(LOG_TAG, "removed network LocationListener");
+        Toast.makeText(RecorderService.this, "snowhow: on GPS logging now", Toast.LENGTH_SHORT).show();
+        firstGPSfix = true;
+        locationManager.removeUpdates(mnetll);
+      }
       locations = sharedPref.getInt("count", 0);
       locations += 1;
       editor.putInt("count", locations);
       editor.commit();
       note.setContentText("Click to stop track recording ("+locations+" points).");
       try {
-        myWriter.seek(myWriter.length()-2); // kill last 2 byte
+        myWriter.seek(myWriter.length()-2); // remove last 2 byte
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
               +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]]}";
         if (firstPoint == true) {
