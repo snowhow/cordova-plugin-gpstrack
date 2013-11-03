@@ -173,6 +173,11 @@ public class RecorderService extends Service {
     Log.d(LOG_TAG, "recording in handleIntent");
     try {
       // FileWriter file = new FileWriter(trackFile);
+      File trackFile = new File(tf).getParentFile();
+      if (!trackFile.exists()) {
+        trackFile.mkdirs();
+        Log.d(LOG_TAG, "done creating path for trackfile: "+trackFile);
+      }
       myWriter = new RandomAccessFile(tf, "rw");
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
@@ -183,7 +188,7 @@ public class RecorderService extends Service {
         myWriter.write(",\"coordinates\":[]}".getBytes());
       }
     } catch (IOException e) {
-      Log.d(LOG_TAG, "io error.");
+      Log.d(LOG_TAG, "io error. cannot write to file "+tf);
     }
     locationManager.requestLocationUpdates(
       LocationManager.GPS_PROVIDER, 
