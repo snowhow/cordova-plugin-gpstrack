@@ -262,6 +262,7 @@ public class RecorderService extends Service {
     try {
       prop.put("user", "anonymous@snowhow.info");
       prop.put("start_ts", start_ts);
+      prop.put("localname", "snowhow_"+start_ts+".json");
       prop.put("rec_type", "gpstrack_plugin");
       prop.put("plugin_version", GPS_TRACK_VERSION);
       obj.put("type", "LineString");
