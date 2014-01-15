@@ -35,12 +35,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 
-import android.support.v4.content.LocalBroadcastManager;
 import android.content.BroadcastReceiver;
 
 import android.app.NotificationManager;
 import android.app.Notification;
-import android.support.v4.app.NotificationCompat;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.IntentService;
@@ -68,7 +66,7 @@ public class RecorderService extends Service {
   protected LocationManager locationManager;
   protected int locations = 0;
   public NotificationManager nm;
-  public NotificationCompat.Builder note;
+  public Notification.Builder note;
   protected RandomAccessFile myWriter;
   protected long start_ts = System.currentTimeMillis();
   protected CallbackContext cbctx;
@@ -157,7 +155,7 @@ public class RecorderService extends Service {
     // Intent bcRecI = new Intent(this, RecorderServiceBroadcastReceiver.class);
     Intent bcRecI = new Intent(ifString);
     PendingIntent pend = PendingIntent.getBroadcast(this, 0, bcRecI, 0);
-    note = new NotificationCompat.Builder(this)
+    note = new Notification.Builder(this)
       .setContentTitle("snowhow gps tracking")
       .setSmallIcon(R.drawable.icon)
       .setOngoing(true)

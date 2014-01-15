@@ -35,6 +35,24 @@ GPSTrack.prototype.record = function(track, precision, succ, err) {
   exec(win, err, "GPSTrack", "record", [track, precision]);
 };
 
+/**
+ * subscribe to a track running recording
+ *
+ */
+GPSTrack.prototype.listen = function(succ, err) {
+  var self = this;
+  var win = function(result) {
+    if (result.location) {
+      if (self.onlocationupdate) {
+        self.onlocationupdate(result);
+      }
+    } else if (succ) {
+      succ(result);
+    }
+  };
+  exec(win, err, "GPSTrack", "listen", []);
+};
+
 
 module.exports = GPSTrack;
 

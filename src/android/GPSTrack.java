@@ -34,6 +34,13 @@ public class GPSTrack extends CordovaPlugin {
 //           // callbackContext.success();
 //         }
 //       });
+    } else if (action.equals("listen")) {
+      JSONObject obj = new JSONObject();
+      obj.put("test", 1);
+      PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
+      res.setKeepCallback(true);
+      callbackContext.sendPluginResult(res);
+      Log.d(LOG_TAG, "done sending to webapp");
     } else {
       return false;
     }
