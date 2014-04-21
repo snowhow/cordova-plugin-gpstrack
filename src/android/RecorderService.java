@@ -52,7 +52,7 @@ import info.snowhow.R;
 
 
 public class RecorderService extends Service {
-  private static final String GPS_TRACK_VERSION = "0.1";
+  private static final String GPS_TRACK_VERSION = "0.2";
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 1; // in Meters
@@ -177,6 +177,8 @@ public class RecorderService extends Service {
         Log.d(LOG_TAG, "done creating path for trackfile: "+trackFile);
       }
       myWriter = new RandomAccessFile(tf, "rw");
+      Log.d(LOG_TAG, "going to create lockfile");
+      createLockFile();
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
         String trackHead = initTrack(tf).toString();
@@ -194,12 +196,14 @@ public class RecorderService extends Service {
       MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
       mgpsll
     );
-    locationManager.requestLocationUpdates(
-      LocationManager.NETWORK_PROVIDER, 
-      MINIMUM_TIME_BETWEEN_UPDATES, 
-      MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
-      mnetll
-    );
+    if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
+      locationManager.requestLocationUpdates(
+        LocationManager.NETWORK_PROVIDER, 
+        MINIMUM_TIME_BETWEEN_UPDATES, 
+        MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+        mnetll
+      );
+    }
     return START_STICKY;
   }
 
@@ -223,6 +227,7 @@ public class RecorderService extends Service {
 
 
   public void cleanUp() {
+    deleteLockFile();
     locationManager.removeUpdates(mgpsll);
     locationManager.removeUpdates(mnetll);
     locationManager = null;
@@ -251,6 +256,29 @@ public class RecorderService extends Service {
       delFile.delete();
     } catch (IOException e) {
       Log.d(LOG_TAG, "io delete error. delete");
+    }
+  }
+
+  public void createLockFile() {
+    Log.d(LOG_TAG, "creating lockfile ...");
+    try {
+      File file = new File(tf+".lock");
+      Log.d(LOG_TAG, "creating lockfile "+file);
+      file.createNewFile();
+    } catch(Exception e) {
+      Log.d(LOG_TAG, "io err: cannot create lockfile");
+    }
+  }
+
+  public void deleteLockFile() {
+    if (tf == null || tf == "") {
+      return;
+    }
+    try {
+      File lockFile = new File(tf+".lock");
+      lockFile.delete();
+    } catch(Exception e) {
+      Log.d(LOG_TAG, "io err: cannot delete lockfile");
     }
   }
 
