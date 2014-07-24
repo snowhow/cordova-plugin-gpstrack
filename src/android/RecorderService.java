@@ -21,6 +21,9 @@ import android.content.SharedPreferences.Editor;
 import android.preference.PreferenceManager;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -52,11 +55,11 @@ import info.snowhow.R;
 
 
 public class RecorderService extends Service {
-  private static final String GPS_TRACK_VERSION = "0.2";
+  private static final String GPS_TRACK_VERSION = "0.2.1";
 
   private static final String LOG_TAG = "GPSTrack";
-  private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 1; // in Meters
-  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 1000; // in Milliseconds
+  private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
+  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 2000; // in Milliseconds
 
   protected float minimumPrecision = 0;
 
@@ -125,8 +128,31 @@ public class RecorderService extends Service {
     registerReceiver(RecorderServiceBroadcastReceiver, new IntentFilter(ifString));
   }
 
+  private void showNoGPSAlert() {
+    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+    alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
+    .setCancelable(false)
+    .setPositiveButton("Goto Settings Page To Enable GPS", new DialogInterface.OnClickListener() {
+      public void onClick(DialogInterface dialog, int id) {
+        Intent callGPSSettingIntent = new Intent(
+          android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+          startActivity(callGPSSettingIntent);
+        }
+    });
+    alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+      public void onClick(DialogInterface dialog, int id){
+        dialog.cancel();
+      }
+    });
+    AlertDialog alert = alertDialogBuilder.create();
+    alert.show();
+  }
+
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
+    if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+      showNoGPSAlert(intent);
+    }
     runningID = startId;
     Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
     // We want this service to continue running until it is explicitly
