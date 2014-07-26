@@ -82,6 +82,7 @@ public class RecorderService extends Service {
   protected int runningID;
   protected SharedPreferences sharedPref;
   protected SharedPreferences.Editor editor;
+  public GPSServer gpss;
 
 
   public class LocalBinder extends Binder {
@@ -126,6 +127,15 @@ public class RecorderService extends Service {
     // registerReceiver(bcrc, new IntentFilter(ifString));
     // cordova.getActivity().registerReceiver(bcrc, new IntentFilter(ifString));
     registerReceiver(RecorderServiceBroadcastReceiver, new IntentFilter(ifString));
+    Log.d(LOG_TAG, "starting WS Server on Port 8887");
+    try {
+      GPSServer gpss = new GPSServer(8887);
+      gpss.start();
+      Log.d(LOG_TAG, "starting WS Server on Port: "+gpss.getPort());
+    } catch (Exception e) {
+      Log.d(LOG_TAG, "ERROR starting WS Server on Port 8887");
+      Log.d(LOG_TAG, "bad:", e);
+    }
   }
 
   private void showNoGPSAlert() {
@@ -151,7 +161,7 @@ public class RecorderService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-      showNoGPSAlert(intent);
+      showNoGPSAlert();
     }
     runningID = startId;
     Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
@@ -253,6 +263,9 @@ public class RecorderService extends Service {
 
 
   public void cleanUp() {
+    try {
+      gpss.stop();
+    } catch (Exception e) { }
     deleteLockFile();
     locationManager.removeUpdates(mgpsll);
     locationManager.removeUpdates(mnetll);
@@ -379,9 +392,11 @@ public class RecorderService extends Service {
       editor.commit();
       note.setContentText("Click to stop track recording ("+locations+" points).");
       try {
-        myWriter.seek(myWriter.length()-2); // remove last 2 byte
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
-              +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]]}";
+              +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]";
+        gpss.sendToAll(locString);
+        locString += "]}";
+        myWriter.seek(myWriter.length()-2); // remove last 2 byte
         if (firstPoint == true) {
           firstPoint = false;
         } else {

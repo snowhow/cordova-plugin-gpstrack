@@ -27,6 +27,12 @@ public class GPSTrack extends CordovaPlugin {
       final String trackFile = args.getString(0);
       final float precision = (float) args.getDouble(1);
       record(trackFile, precision);
+      JSONObject obj = new JSONObject();
+      obj.put("test", 1);
+      PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
+      res.setKeepCallback(true);
+      callbackContext.sendPluginResult(res);
+      Log.d(LOG_TAG, "done sending to webapp");
 //       cordova.getActivity().runOnUiThread(new Runnable() {
 //         @Override
 //         public void run() {

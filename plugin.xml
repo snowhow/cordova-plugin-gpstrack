@@ -28,6 +28,7 @@
 
         <source-file src="src/android/GPSTrack.java" target-dir="src/info/snowhow/plugin" />
         <source-file src="src/android/RecorderService.java" target-dir="src/info/snowhow/plugin" />
+        <source-file src="src/android/GPSServer.java" target-dir="src/info/snowhow/plugin" />
     </platform>
 
 </plugin>
