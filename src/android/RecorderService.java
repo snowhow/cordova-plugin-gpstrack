@@ -37,6 +37,9 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.net.InetSocketAddress;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 
 import android.content.BroadcastReceiver;
 
@@ -127,15 +130,7 @@ public class RecorderService extends Service {
     // registerReceiver(bcrc, new IntentFilter(ifString));
     // cordova.getActivity().registerReceiver(bcrc, new IntentFilter(ifString));
     registerReceiver(RecorderServiceBroadcastReceiver, new IntentFilter(ifString));
-    Log.d(LOG_TAG, "starting WS Server on Port 8887");
-    try {
-      GPSServer gpss = new GPSServer(8887);
-      gpss.start();
-      Log.d(LOG_TAG, "starting WS Server on Port: "+gpss.getPort());
-    } catch (Exception e) {
-      Log.d(LOG_TAG, "ERROR starting WS Server on Port 8887");
-      Log.d(LOG_TAG, "bad:", e);
-    }
+    startGPSS();
   }
 
   private void showNoGPSAlert() {
@@ -213,8 +208,8 @@ public class RecorderService extends Service {
         Log.d(LOG_TAG, "done creating path for trackfile: "+trackFile);
       }
       myWriter = new RandomAccessFile(tf, "rw");
-      Log.d(LOG_TAG, "going to create lockfile");
-      createLockFile();
+      // Log.d(LOG_TAG, "going to create lockfile");
+      // createLockFile();
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
         String trackHead = initTrack(tf).toString();
@@ -264,9 +259,15 @@ public class RecorderService extends Service {
 
   public void cleanUp() {
     try {
-      gpss.stop();
-    } catch (Exception e) { }
-    deleteLockFile();
+      gpss.sendString("{ \"type\": \"status\", \"msg\": \"disconnect\" }");
+      Log.d(LOG_TAG, "stopping gpss ...");
+      gpss.stop(1000);
+      Log.d(LOG_TAG, "stopped gpss ...");
+    } catch (Exception e) { 
+      Log.d(LOG_TAG, "unable to stop gpss");
+      Log.d(LOG_TAG, "stack", e);
+    }
+    // deleteLockFile();
     locationManager.removeUpdates(mgpsll);
     locationManager.removeUpdates(mnetll);
     locationManager = null;
@@ -338,6 +339,45 @@ public class RecorderService extends Service {
     return obj;
   }
 
+  public void startGPSS() {
+    Log.d(LOG_TAG, "starting WS Server on Port 8887");
+    try {
+//      byte[] ipAddr = new byte[]{127, 0, 0, 1};
+//      InetAddress addr = Inet4Address.getByAddress(ipAddr);
+//      gpss = new GPSServer(new InetSocketAddress(addr, 8887));
+      gpss = new GPSServer(8887, this);
+      gpss.start();
+      Log.d(LOG_TAG, "starting WS Server on : "+gpss.getAddress());
+      Log.d(LOG_TAG, "Gpssss is "+gpss);
+      gpss.sendString("{ \"type\": \"start\", \"msg\": \"start on "+gpss.getAddress()+"\" }");
+    } catch (Exception e) {
+      Log.d(LOG_TAG, "ERROR starting WS Server on Port 8887");
+      Log.d(LOG_TAG, "bad:", e);
+    }
+  }
+
+  public void stopRecording() {
+    nm.cancel(0);
+    if (locations == 0) {   // no locations recorded, delete file
+      deleteFile();
+      cleanUp();
+      Log.i(LOG_TAG, "cleaned up, file deleted (was empty)");
+      return;
+    }
+    writeFile();
+    JSONObject obj = new JSONObject();
+    try {
+      obj.put("status", 0);
+      obj.put("file", tf);
+      PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
+      // cbctx.sendPluginResult(res);
+    } catch (JSONException e) {
+      // cbctx.success();
+    }
+    cleanUp();
+    Log.i(LOG_TAG, "cleaned up, file saved");
+  }
+
   private BroadcastReceiver RecorderServiceBroadcastReceiver = new BroadcastReceiver() {
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -394,7 +434,15 @@ public class RecorderService extends Service {
       try {
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
               +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]";
-        gpss.sendToAll(locString);
+        Log.d(LOG_TAG, "GPSS is "+ gpss);
+        int pointCount = sharedPref.getInt("count", 0);
+        if (gpss != null) {
+          gpss.sendString("{ \"type\": \"coords\", \"coords\": "+locString+", \"pointCount\": "+pointCount+"}");
+        } else {
+          startGPSS();
+          Log.d(LOG_TAG, "started new GPSS");
+          gpss.sendString("{ \"type\": \"coords\", \"coords\": "+locString+", \"pointCount\": "+pointCount+"}");
+        }
         locString += "]}";
         myWriter.seek(myWriter.length()-2); // remove last 2 byte
         if (firstPoint == true) {

@@ -14,68 +14,51 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import android.util.Log;
 
+import info.snowhow.plugin.RecorderService;
+
 /**
  * A simple WebSocketServer implementation. Send GPS Data
  */
 public class GPSServer extends WebSocketServer {
   private static final String LOG_TAG = "GPSServer";
+  protected RecorderService rs;
 
-	public GPSServer( int port ) throws UnknownHostException {
+	public GPSServer( int port, RecorderService rs ) throws UnknownHostException {
 		super( new InetSocketAddress( port ) );
+    this.rs = rs;
 	}
 
-	public GPSServer( InetSocketAddress address ) {
-		super( address );
-	}
+//	public GPSServer( InetSocketAddress address ) {
+//		super( address );
+//	}
 
 	@Override
 	public void onOpen( WebSocket conn, ClientHandshake handshake ) {
-		this.sendToAll( "new connection: " + handshake.getResourceDescriptor() );
-		System.out.println( conn.getRemoteSocketAddress().getAddress().getHostAddress() + " entered the room!" );
+		this.sendString("{ \"type\": \"status\", \"msg\": \"connected\" }");
+		Log.d(LOG_TAG, conn.getRemoteSocketAddress().getAddress().getHostAddress() + " connected." );
 	}
 
 	@Override
 	public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
-		this.sendToAll( conn + " has left the room!" );
-		System.out.println( conn + " has left the room!" );
+		this.sendString("{ \"type\": \"status\", \"msg\": \"disconnected\" }");
 	}
 
 	@Override
 	public void onMessage( WebSocket conn, String message ) {
-		this.sendToAll( message );
-		System.out.println( conn + ": " + message );
+    Log.d(LOG_TAG, "got msg from UI: "+message);
+      rs.stopRecording();
+    if (message == "quit") {
+      // FIXME: stop recorder
+      Log.d(LOG_TAG, "got stop command from UI");
+      rs.stopRecording();
+    }
 	}
 
 	@Override
 	public void onFragment( WebSocket conn, Framedata fragment ) {
-		System.out.println( "received fragment: " + fragment );
+		Log.d(LOG_TAG, "received fragment: " + fragment );
 	}
 
-	public static void main( String[] args ) throws InterruptedException , IOException {
-		WebSocketImpl.DEBUG = true;
-		int port = 8887; // 843 flash policy port
-		try {
-			port = Integer.parseInt( args[ 0 ] );
-		} catch ( Exception ex ) {
-		}
-		GPSServer s = new GPSServer( port );
-		s.start();
-		System.out.println( "GPSServer started on port: " + s.getPort() );
-
-		BufferedReader sysin = new BufferedReader( new InputStreamReader( System.in ) );
-		while ( true ) {
-			String in = sysin.readLine();
-			s.sendToAll( in );
-			if( in.equals( "exit" ) ) {
-				s.stop();
-				break;
-			} else if( in.equals( "restart" ) ) {
-				s.stop();
-				s.start();
-				break;
-			}
-		}
-	}
 	@Override
 	public void onError( WebSocket conn, Exception ex ) {
     Log.d(LOG_TAG, "error in GPSServer");
@@ -93,13 +76,18 @@ public class GPSServer extends WebSocketServer {
 	 * @throws InterruptedException
 	 *             When socket related I/O errors occur.
 	 */
-	public void sendToAll( String text ) {
-    Log.d(LOG_TAG, "going to send message to all: "+text);
+	public void sendString( String text ) {
+    Log.d(LOG_TAG, "going to send message to connections: "+text);
 		Collection<WebSocket> con = connections();
 		synchronized ( con ) {
 			for( WebSocket c : con ) {
 				c.send( text );
+        Log.d(LOG_TAG, "done sending string to "+c);
 			}
 		}
 	}
+
+  public String __toString() {
+    return "GPS Websocket server on Port : "+ getPort();
+  }
 }
