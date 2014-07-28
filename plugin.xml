@@ -10,6 +10,8 @@
       <clobbers target="window.GPSTrack"/>
     </js-module>
 
+    <dependency id="com.ququplay.websocket.WebSocket" url="https://github.com/mkuklis/phonegap-websocket" />
+
     <!-- android -->
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
