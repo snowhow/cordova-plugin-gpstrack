@@ -378,6 +378,11 @@ public class RecorderService extends Service {
     Log.i(LOG_TAG, "cleaned up, file saved");
   }
 
+  public String getTrackFilename() {
+    return tf;
+  }
+
+
   private BroadcastReceiver RecorderServiceBroadcastReceiver = new BroadcastReceiver() {
     @Override
     public void onReceive(Context context, Intent intent) {

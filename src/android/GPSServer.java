@@ -28,10 +28,6 @@ public class GPSServer extends WebSocketServer {
     this.rs = rs;
 	}
 
-//	public GPSServer( InetSocketAddress address ) {
-//		super( address );
-//	}
-
 	@Override
 	public void onOpen( WebSocket conn, ClientHandshake handshake ) {
 		this.sendString("{ \"type\": \"status\", \"msg\": \"connected\" }");
@@ -45,12 +41,11 @@ public class GPSServer extends WebSocketServer {
 
 	@Override
 	public void onMessage( WebSocket conn, String message ) {
-    Log.d(LOG_TAG, "got msg from UI: "+message);
+    Log.d(LOG_TAG, "got msg from UI: ->"+message+"<-");
+    if (message.equals("quit")) {
       rs.stopRecording();
-    if (message == "quit") {
-      // FIXME: stop recorder
-      Log.d(LOG_TAG, "got stop command from UI");
-      rs.stopRecording();
+    } else if (message.equals("getFilename")) {
+      sendString("{ \"type\": \"filename\", \"msg\": \""+rs.getTrackFilename()+"\" }");
     }
 	}
 
@@ -86,8 +81,4 @@ public class GPSServer extends WebSocketServer {
 			}
 		}
 	}
-
-  public String __toString() {
-    return "GPS Websocket server on Port : "+ getPort();
-  }
 }
