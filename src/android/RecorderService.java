@@ -29,6 +29,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.widget.Toast;
+import android.view.WindowManager;
 
 import java.io.RandomAccessFile;
 import java.io.BufferedWriter;
@@ -134,32 +135,36 @@ public class RecorderService extends Service {
   }
 
   private void showNoGPSAlert() {
+    Log.i(LOG_TAG, "No GPS available --- show Dialog");
     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
     alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
     .setCancelable(false)
-    .setPositiveButton("Goto Settings Page To Enable GPS", new DialogInterface.OnClickListener() {
+    .setPositiveButton("GPS Settings", new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int id) {
         Intent callGPSSettingIntent = new Intent(
           android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+          callGPSSettingIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
           startActivity(callGPSSettingIntent);
         }
     });
     alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
       public void onClick(DialogInterface dialog, int id){
+        stopRecording();
         dialog.cancel();
       }
     });
     AlertDialog alert = alertDialogBuilder.create();
+    alert.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
     alert.show();
   }
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
+    Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
     if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
       showNoGPSAlert();
     }
     runningID = startId;
-    Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
 
