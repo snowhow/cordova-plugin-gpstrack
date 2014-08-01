@@ -103,33 +103,10 @@ public class RecorderService extends Service {
     Log.d(LOG_TAG, "onCreate called in service");
     mgpsll = new MyLocationListener();
     mnetll = new MyLocationListener();
-    // Context context = intent.getApplicationContext();
-    // ctx = getContext();
-    // cordova = getBundleExtra("info.snowhow.plugin.GPSTrack.cordova");
     sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
     editor = sharedPref.edit();
     locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     Log.d(LOG_TAG, "locationManager initialized, starting intent");
-//     bcrc = new BroadcastReceiver() {
-//       @Override
-//       public void onReceive(Context context, Intent intent) {
-//         recording = false;
-//         firstPoint = true;
-//         writeFile();
-//         JSONObject obj = new JSONObject();
-//         try {
-//           obj.put("status", 0);
-//           obj.put("file", tf);
-//           PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
-//           // cbctx.sendPluginResult(res);
-//         } catch (JSONException e) {
-//           // cbctx.success();
-//         }
-//         cleanUp();
-//       }
-//     };
-    // registerReceiver(bcrc, new IntentFilter(ifString));
-    // cordova.getActivity().registerReceiver(bcrc, new IntentFilter(ifString));
     registerReceiver(RecorderServiceBroadcastReceiver, new IntentFilter(ifString));
     startGPSS();
   }
@@ -183,12 +160,12 @@ public class RecorderService extends Service {
       }
     } else {
       tf = intent.getStringExtra("fileName");
+      Log.d(LOG_TAG, "FILENAME for recording is "+tf);
       minimumPrecision = intent.getFloatExtra("precision", 0);
       editor.putString("runningTrackFile", tf);
       editor.putFloat("runningPrecision", minimumPrecision);
       editor.commit();
     }
-    // Intent bcRecI = new Intent(this, RecorderServiceBroadcastReceiver.class);
     Intent bcRecI = new Intent(ifString);
     PendingIntent pend = PendingIntent.getBroadcast(this, 0, bcRecI, 0);
     note = new Notification.Builder(this)
@@ -199,22 +176,19 @@ public class RecorderService extends Service {
       .setDeleteIntent(pend)
       .setContentIntent(pend)
       .setContentText("No location yet. Click to quit recording.");
-      // .addAction(android.R.drawable.ic_menu_camera, "Stop", pend);
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
     nm.notify(0, note.build());
 
     recording = true;
     Log.d(LOG_TAG, "recording in handleIntent");
-    try {
-      // FileWriter file = new FileWriter(trackFile);
+    try {   // create directory first, if it does not exist
       File trackFile = new File(tf).getParentFile();
       if (!trackFile.exists()) {
         trackFile.mkdirs();
         Log.d(LOG_TAG, "done creating path for trackfile: "+trackFile);
       }
+      Log.d(LOG_TAG, "going to create RandomAccessFile "+tf);
       myWriter = new RandomAccessFile(tf, "rw");
-      // Log.d(LOG_TAG, "going to create lockfile");
-      // createLockFile();
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
         String trackHead = initTrack(tf).toString();
@@ -255,7 +229,6 @@ public class RecorderService extends Service {
   @Override
   public void onDestroy() {
     // Cancel the persistent notification.
-    // mNM.cancel(NOTIFICATION);
     nm.cancel(0);
     // Tell the user we stopped.
     Toast.makeText(this, "snowhow: track recording service stopped", Toast.LENGTH_SHORT).show();
@@ -304,17 +277,6 @@ public class RecorderService extends Service {
     }
   }
 
-  public void createLockFile() {
-    Log.d(LOG_TAG, "creating lockfile ...");
-    try {
-      File file = new File(tf+".lock");
-      Log.d(LOG_TAG, "creating lockfile "+file);
-      file.createNewFile();
-    } catch(Exception e) {
-      Log.d(LOG_TAG, "io err: cannot create lockfile");
-    }
-  }
-
   public void deleteLockFile() {
     if (tf == null || tf == "") {
       return;
@@ -347,9 +309,6 @@ public class RecorderService extends Service {
   public void startGPSS() {
     Log.d(LOG_TAG, "starting WS Server on Port 8887");
     try {
-//      byte[] ipAddr = new byte[]{127, 0, 0, 1};
-//      InetAddress addr = Inet4Address.getByAddress(ipAddr);
-//      gpss = new GPSServer(new InetSocketAddress(addr, 8887));
       gpss = new GPSServer(8887, this);
       gpss.start();
       Log.d(LOG_TAG, "starting WS Server on : "+gpss.getAddress());
@@ -391,8 +350,6 @@ public class RecorderService extends Service {
   private BroadcastReceiver RecorderServiceBroadcastReceiver = new BroadcastReceiver() {
     @Override
     public void onReceive(Context context, Intent intent) {
-      // recording = false;
-      // firstPoint = true;
       if (locations == 0) {   // no locations recorded, delete file
         deleteFile();
         cleanUp();
@@ -400,15 +357,6 @@ public class RecorderService extends Service {
         return;
       }
       writeFile();
-      JSONObject obj = new JSONObject();
-      try {
-        obj.put("status", 0);
-        obj.put("file", tf);
-        PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
-        // cbctx.sendPluginResult(res);
-      } catch (JSONException e) {
-        // cbctx.success();
-      }
       cleanUp();
       Log.i(LOG_TAG, "cleaned up, file saved");
     }
@@ -464,29 +412,7 @@ public class RecorderService extends Service {
       } catch (IOException e) {
         Log.d(LOG_TAG, "io error writing pos");
       }
-      // location changed "+location.getLongitude()+"/"+location.getLatitude());
       nm.notify(0, note.build());
-      // notifyViaCallback(location);
-    }
-
-    public void notifyViaCallback(Location location) {
-      JSONObject obj = new JSONObject();
-      JSONObject loc = new JSONObject();
-      try {
-        loc.put("latitude", location.getLatitude());
-        loc.put("longitude", location.getLongitude());
-        loc.put("altitude", location.getAltitude());
-        loc.put("timestamp", location.getTime());
-        loc.put("accuracy", location.getAccuracy());
-        obj.put("location", loc);
-        obj.put("count", locations);
-      } catch (JSONException e) {
-        Log.d(LOG_TAG, "jsonObject error: "+e);
-      }
-      // PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
-      // res.setKeepCallback(true);
-      // cbctx.sendPluginResult(res);
-      // Log.d(LOG_TAG, "sending location "+location.getLongitude()+" to webapp");
     }
 
     public void onStatusChanged(String s, int i, Bundle b) {
