@@ -391,6 +391,9 @@ public class RecorderService extends Service {
         if (lastLoc.distanceTo(location) > 50 && goingFast == 0) {  // faster than 5 m/s, switch to faster GPS interval
           Log.d(LOG_TAG, "fast travelling --- switch to 2 secs update");
           Toast.makeText(RecorderService.this, "fast travelling --- switch to 2 secs update", Toast.LENGTH_SHORT).show();
+          if (gpss != null) {
+            gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "+MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
+          }
           locationManager.removeUpdates(mgpsll);
           locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER,
@@ -402,6 +405,9 @@ public class RecorderService extends Service {
         } else if (lastLoc.distanceTo(location) < 10 && goingFast == 1) {
           Toast.makeText(RecorderService.this, "slow travelling --- switch to 10 secs update", Toast.LENGTH_SHORT).show();
           Log.d(LOG_TAG, "slow travelling --- switch to 10 secs update");
+          if (gpss != null) {
+            gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "+MINIMUM_TIME_BETWEEN_UPDATES+"}");
+          }
           locationManager.removeUpdates(mgpsll);
           locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER,
