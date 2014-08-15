@@ -63,7 +63,8 @@ public class RecorderService extends Service {
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
-  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 2000; // in Milliseconds
+  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 10000; // in Milliseconds
+  private static final long MINIMUM_TIME_BETWEEN_UPDATES_FAST = 2000; // in Milliseconds
 
   protected float minimumPrecision = 0;
 
@@ -87,6 +88,8 @@ public class RecorderService extends Service {
   protected SharedPreferences sharedPref;
   protected SharedPreferences.Editor editor;
   public GPSServer gpss;
+  protected Location lastLoc;
+  protected int goingFast = 0;
 
 
   public class LocalBinder extends Binder {
@@ -201,15 +204,15 @@ public class RecorderService extends Service {
       Log.d(LOG_TAG, "io error. cannot write to file "+tf);
     }
     locationManager.requestLocationUpdates(
-      LocationManager.GPS_PROVIDER, 
-      MINIMUM_TIME_BETWEEN_UPDATES, 
+      LocationManager.GPS_PROVIDER,
+      MINIMUM_TIME_BETWEEN_UPDATES,
       MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
       mgpsll
     );
     if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
       locationManager.requestLocationUpdates(
-        LocationManager.NETWORK_PROVIDER, 
-        MINIMUM_TIME_BETWEEN_UPDATES, 
+        LocationManager.NETWORK_PROVIDER,
+        MINIMUM_TIME_BETWEEN_UPDATES,
         MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
         mnetll
       );
@@ -241,7 +244,7 @@ public class RecorderService extends Service {
       Log.d(LOG_TAG, "stopping gpss ...");
       gpss.stop(1000);
       Log.d(LOG_TAG, "stopped gpss ...");
-    } catch (Exception e) { 
+    } catch (Exception e) {
       Log.d(LOG_TAG, "unable to stop gpss");
       Log.d(LOG_TAG, "stack", e);
     }
@@ -384,6 +387,28 @@ public class RecorderService extends Service {
         firstGPSfix = true;
         locationManager.removeUpdates(mnetll);
       }
+      if (lastLoc.distanceTo(location) > 50 && goingFast == 0) {  // faster than 5 m/s, switch to faster GPS interval
+        Toast.makeText(RecorderService.this, "fast travelling --- switch to 2 secs update", Toast.LENGTH_SHORT).show();
+        locationManager.removeUpdates(mgpsll);
+        locationManager.requestLocationUpdates(
+          LocationManager.GPS_PROVIDER,
+          MINIMUM_TIME_BETWEEN_UPDATES_FAST,
+          MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+          mgpsll
+        );
+        goingFast = 1;
+      } else if (lastLoc.distanceTo(location) < 10 && goingFast == 1) {
+        Toast.makeText(RecorderService.this, "slow travelling --- switch to 2 secs update", Toast.LENGTH_SHORT).show();
+        locationManager.removeUpdates(mgpsll);
+        locationManager.requestLocationUpdates(
+          LocationManager.GPS_PROVIDER,
+          MINIMUM_TIME_BETWEEN_UPDATES,
+          MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+          mgpsll
+        );
+        goingFast = 0;
+      }
+      lastLoc = location;
       locations = sharedPref.getInt("count", 0);
       locations += 1;
       editor.putInt("count", locations);
