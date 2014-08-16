@@ -63,8 +63,9 @@ public class RecorderService extends Service {
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
-  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 10000; // in Milliseconds
-  private static final long MINIMUM_TIME_BETWEEN_UPDATES_FAST = 2000; // in Milliseconds
+  private static final long MINIMUM_TIME_BETWEEN_UPDATES = 5000; // in Milliseconds
+  private static final long MINIMUM_TIME_BETWEEN_UPDATES_FAST = 1000; // in Milliseconds
+  private static final long SPEED_LIMIT = 5; // in meter per second
 
   protected float minimumPrecision = 0;
 
@@ -89,7 +90,7 @@ public class RecorderService extends Service {
   protected SharedPreferences.Editor editor;
   public GPSServer gpss;
   protected Location lastLoc;
-  protected int goingFast = 0;
+  protected boolean goingFast = false;
 
 
   public class LocalBinder extends Binder {
@@ -332,15 +333,6 @@ public class RecorderService extends Service {
       return;
     }
     writeFile();
-    JSONObject obj = new JSONObject();
-    try {
-      obj.put("status", 0);
-      obj.put("file", tf);
-      PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
-      // cbctx.sendPluginResult(res);
-    } catch (JSONException e) {
-      // cbctx.success();
-    }
     cleanUp();
     Log.i(LOG_TAG, "cleaned up, file saved");
   }
@@ -374,6 +366,8 @@ public class RecorderService extends Service {
     }
 
     public void onLocationChanged(Location location) {
+      float speed = location.getSpeed();
+      String speedType = "gps";
       if (recording != true) {
         return;
       }
@@ -388,11 +382,17 @@ public class RecorderService extends Service {
         locationManager.removeUpdates(mnetll);
       }
       if (lastLoc != null) {
-        if (lastLoc.distanceTo(location) > 50 && goingFast == 0) {  // faster than 5 m/s, switch to faster GPS interval
-          Log.d(LOG_TAG, "fast travelling --- switch to 2 secs update");
-          Toast.makeText(RecorderService.this, "fast travelling --- switch to 2 secs update", Toast.LENGTH_SHORT).show();
+        if (speed == 0) {
+          long timeDiff = (location.getTime() - lastLoc.getTime())/1000;
+          speed = lastLoc.distanceTo(location)/timeDiff;
+          speedType = "calc";
+          Log.d(LOG_TAG, "speed calc from lastLoc "+timeDiff+" makes speed "+speed);
+        }
+        if (speed > SPEED_LIMIT && goingFast == false) {  // faster than 5 m/s, switch to faster GPS interval
+          Log.d(LOG_TAG, "travelling fast --- switch to fast update");
           if (gpss != null) {
-            gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "+MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
+            gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "
+                +MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
           }
           locationManager.removeUpdates(mgpsll);
           locationManager.requestLocationUpdates(
@@ -401,12 +401,12 @@ public class RecorderService extends Service {
             MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
             mgpsll
           );
-          goingFast = 1;
-        } else if (lastLoc.distanceTo(location) < 10 && goingFast == 1) {
-          Toast.makeText(RecorderService.this, "slow travelling --- switch to 10 secs update", Toast.LENGTH_SHORT).show();
-          Log.d(LOG_TAG, "slow travelling --- switch to 10 secs update");
+          goingFast = true;
+        } else if (speed <= SPEED_LIMIT && goingFast == true) {
+          Log.d(LOG_TAG, "travelling slow --- switch to slow update");
           if (gpss != null) {
-            gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "+MINIMUM_TIME_BETWEEN_UPDATES+"}");
+            gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "
+                +MINIMUM_TIME_BETWEEN_UPDATES+"}");
           }
           locationManager.removeUpdates(mgpsll);
           locationManager.requestLocationUpdates(
@@ -415,7 +415,7 @@ public class RecorderService extends Service {
             MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
             mgpsll
           );
-          goingFast = 0;
+          goingFast = false;
         }
       }
       lastLoc = location;
@@ -423,18 +423,21 @@ public class RecorderService extends Service {
       locations += 1;
       editor.putInt("count", locations);
       editor.commit();
-      note.setContentText("Click to stop track recording ("+locations+" points).");
+      long gpsInterval = (goingFast) ? (MINIMUM_TIME_BETWEEN_UPDATES_FAST/1000) : (MINIMUM_TIME_BETWEEN_UPDATES/1000);
+      note.setContentText("Click to stop track recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
       try {
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
               +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]";
-        Log.d(LOG_TAG, "GPSS is "+ gpss);
         int pointCount = sharedPref.getInt("count", 0);
+        String gpssString = "{\"type\":\"coords\",\"coords\":"+locString
+          +",\"pointCount\":"+pointCount+",\"speed\":"+speed+",\"speedType\":\""+speedType+"\","
+          +"\"interval\":"+gpsInterval+"}";
         if (gpss != null) {
-          gpss.sendString("{ \"type\": \"coords\", \"coords\": "+locString+", \"pointCount\": "+pointCount+"}");
+          gpss.sendString(gpssString);
         } else {
           startGPSS();
           Log.d(LOG_TAG, "started new GPSS");
-          gpss.sendString("{ \"type\": \"coords\", \"coords\": "+locString+", \"pointCount\": "+pointCount+"}");
+          gpss.sendString(gpssString);
         }
         locString += "]}";
         myWriter.seek(myWriter.length()-2); // remove last 2 byte
