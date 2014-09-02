@@ -91,6 +91,7 @@ public class RecorderService extends Service {
   public GPSServer gpss;
   protected Location lastLoc;
   protected boolean goingFast = false;
+  protected boolean adaptiveRecording = false;
 
 
   public class LocalBinder extends Binder {
@@ -153,6 +154,7 @@ public class RecorderService extends Service {
       Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       tf = sharedPref.getString("runningTrackFile", "");
       minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
+      adaptiveRecording = sharedPref.getBoolean("adaptiveRecording", false);
       int count = sharedPref.getInt("count", 0);
       if (count > 0) {
         firstPoint = false;
@@ -166,8 +168,10 @@ public class RecorderService extends Service {
       tf = intent.getStringExtra("fileName");
       Log.d(LOG_TAG, "FILENAME for recording is "+tf);
       minimumPrecision = intent.getFloatExtra("precision", 0);
+      adaptiveRecording = intent.getBooleanExtra("adaptiveRecording", false);
       editor.putString("runningTrackFile", tf);
       editor.putFloat("runningPrecision", minimumPrecision);
+      editor.putBoolean("adaptiveRecording", adaptiveRecording);
       editor.commit();
     }
     Intent bcRecI = new Intent(ifString);
@@ -381,7 +385,8 @@ public class RecorderService extends Service {
         firstGPSfix = true;
         locationManager.removeUpdates(mnetll);
       }
-      if (lastLoc != null) {
+      Log.d(LOG_TAG, "adaptiveRecording: "+adaptiveRecording);
+      if (lastLoc != null && adaptiveRecording == true) {
         if (speed == 0) {
           long timeDiff = (location.getTime() - lastLoc.getTime())/1000;
           speed = lastLoc.distanceTo(location)/timeDiff;
@@ -427,7 +432,8 @@ public class RecorderService extends Service {
       note.setContentText("Click to stop track recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
       try {
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
-              +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\"]";
+              +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\""
+              +","+gpsInterval+","+speed+","+adaptiveRecording+"]";
         int pointCount = sharedPref.getInt("count", 0);
         String gpssString = "{\"type\":\"coords\",\"coords\":"+locString
           +",\"pointCount\":"+pointCount+",\"speed\":"+speed+",\"speedType\":\""+speedType+"\","

@@ -20,8 +20,9 @@ var GPSTrack = function() {
  *
  * @param {String} track       Destination file
  * @param {Float} precision    minimum precision of location (horizontal)
+ * @param {Boolean} adaptiveRecording    switch recording interval based on ground speed
  */
-GPSTrack.prototype.record = function(track, precision, succ, err) {
+GPSTrack.prototype.record = function(track, precision, adaptiveRecording, succ, err) {
   var self = this;
   var win = function(result) {
     if (result.location) {
@@ -32,7 +33,7 @@ GPSTrack.prototype.record = function(track, precision, succ, err) {
       succ(result);
     }
   };
-  exec(win, err, "GPSTrack", "record", [track, precision]);
+  exec(win, err, "GPSTrack", "record", [track, precision, adaptiveRecording]);
 };
 
 /**
