@@ -19,8 +19,10 @@ var GPSTrack = function() {
  * record a track
  *
  * @param {String} track       Destination file
- * @param {Float} precision    minimum precision of location (horizontal)
+ * @param {double} precision    minimum precision of location (horizontal)
  * @param {Boolean} adaptiveRecording    switch recording interval based on ground speed
+ * @param {function} succ   success callback function
+ * @param {function} err    error callback function
  */
 GPSTrack.prototype.record = function(track, precision, adaptiveRecording, succ, err) {
   var self = this;
