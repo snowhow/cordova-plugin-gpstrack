@@ -19,12 +19,14 @@ var GPSTrack = function() {
  * record a track
  *
  * @param {String} track       Destination file
- * @param {double} precision    minimum precision of location (horizontal)
- * @param {Boolean} adaptiveRecording    switch recording interval based on ground speed
+ * @param {Object} options     multiple options
+ * @param {double} options.precision    minimum precision of location (horizontal)
+ * @param {Boolean} options.adaptiveRecording    switch recording interval based on ground speed
+ * @param {String} options.trackName    internal trackname
  * @param {function} succ   success callback function
  * @param {function} err    error callback function
  */
-GPSTrack.prototype.record = function(track, precision, adaptiveRecording, succ, err) {
+GPSTrack.prototype.record = function(track, options, succ, err) {
   var self = this;
   var win = function(result) {
     if (result.location) {
@@ -35,7 +37,10 @@ GPSTrack.prototype.record = function(track, precision, adaptiveRecording, succ, 
       succ(result);
     }
   };
-  exec(win, err, "GPSTrack", "record", [track, precision, adaptiveRecording]);
+  var precision = options.precision || 35,
+    adaptiveRecording = options.adaptiveRecording || false,
+    trackName = options.trackName || "snowhowtrack";
+  exec(win, err, "GPSTrack", "record", [track, precision, adaptiveRecording, trackName]);
 };
 
 /**

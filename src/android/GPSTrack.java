@@ -27,10 +27,11 @@ public class GPSTrack extends CordovaPlugin {
       final String trackFile = args.getString(0);
       final float precision = (float) args.getDouble(1);
       final boolean adaptiveRecording = (boolean) args.getBoolean(2);
+      final String trackName = args.getString(3);
       if (trackFile.indexOf("file:///") > -1) {
-        record(trackFile.substring(7), precision, adaptiveRecording);
+        record(trackFile.substring(7), precision, adaptiveRecording, trackName);
       } else {
-        record(trackFile, precision, adaptiveRecording);
+        record(trackFile, precision, adaptiveRecording, trackName);
       }
       JSONObject obj = new JSONObject();
       obj.put("test", 1);
@@ -58,13 +59,15 @@ public class GPSTrack extends CordovaPlugin {
     return true;
   }
 
-  public void record(final String trackFile, final float precision, final boolean adaptiveRecording) {
+  public void record(final String trackFile, final float precision, final boolean adaptiveRecording, 
+      String trackName) {
     Context context = cordova.getActivity().getApplicationContext();
     Intent intent = new Intent(context, RecorderService.class);
     // intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     intent.putExtra("fileName", trackFile);
     intent.putExtra("precision", precision);
     intent.putExtra("adaptiveRecording", adaptiveRecording);
+    intent.putExtra("trackName", trackName);
     Log.d(LOG_TAG, "in record ... should start intent now");
     context.startService(intent);
   }

@@ -187,6 +187,7 @@ public class RecorderService extends Service {
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
     nm.notify(0, note.build());
 
+    String trackName = intent.getStringExtra("trackName");
     recording = true;
     Log.d(LOG_TAG, "recording in handleIntent");
     try {   // create directory first, if it does not exist
@@ -199,7 +200,7 @@ public class RecorderService extends Service {
       myWriter = new RandomAccessFile(tf, "rw");
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
-        String trackHead = initTrack(tf).toString();
+        String trackHead = initTrack(trackName).toString();
         myWriter.write(trackHead.getBytes());
         // we want to write JSON manually for streamed writing
         myWriter.seek(myWriter.length()-1);
@@ -303,6 +304,8 @@ public class RecorderService extends Service {
     try {
       prop.put("user", "anonymous@snowhow.info");
       prop.put("start_ts", start_ts);
+      prop.put("name", trackName);
+      prop.put("givenName", trackName);
       prop.put("localname", "snowhow_"+start_ts+".json");
       prop.put("rec_type", "gpstrack_plugin");
       prop.put("plugin_version", GPS_TRACK_VERSION);
