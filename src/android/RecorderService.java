@@ -68,6 +68,8 @@ public class RecorderService extends Service {
   private static final long SPEED_LIMIT = 5; // in meter per second
 
   protected float minimumPrecision = 0;
+  protected int speedChangeDelay = 0;
+  private static final long SPEED_CHANGE_COUNT = 5;
 
   protected boolean recording = false;
   protected boolean firstPoint = true;
@@ -397,33 +399,41 @@ public class RecorderService extends Service {
           Log.d(LOG_TAG, "speed calc from lastLoc "+timeDiff+" makes speed "+speed);
         }
         if (speed > SPEED_LIMIT && goingFast == false) {  // faster than 5 m/s, switch to faster GPS interval
-          Log.d(LOG_TAG, "travelling fast --- switch to fast update");
-          if (gpss != null) {
-            gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "
-                +MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
+          speedChangeDelay++;
+          if (speedChangeDelay > SPEED_CHANGE_COUNT) {
+            speedChangeDelay = 0;
+            Log.d(LOG_TAG, "travelling fast --- switch to fast update");
+            if (gpss != null) {
+              gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "
+                  +MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
+            }
+            locationManager.removeUpdates(mgpsll);
+            locationManager.requestLocationUpdates(
+              LocationManager.GPS_PROVIDER,
+              MINIMUM_TIME_BETWEEN_UPDATES_FAST,
+              MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+              mgpsll
+            );
+            goingFast = true;
           }
-          locationManager.removeUpdates(mgpsll);
-          locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            MINIMUM_TIME_BETWEEN_UPDATES_FAST,
-            MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
-            mgpsll
-          );
-          goingFast = true;
         } else if (speed <= SPEED_LIMIT && goingFast == true) {
-          Log.d(LOG_TAG, "travelling slow --- switch to slow update");
-          if (gpss != null) {
-            gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "
-                +MINIMUM_TIME_BETWEEN_UPDATES+"}");
+          speedChangeDelay++;
+          if (speedChangeDelay > SPEED_CHANGE_COUNT) {
+            speedChangeDelay = 0;
+            Log.d(LOG_TAG, "travelling slow --- switch to slow update");
+            if (gpss != null) {
+              gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "
+                  +MINIMUM_TIME_BETWEEN_UPDATES+"}");
+            }
+            locationManager.removeUpdates(mgpsll);
+            locationManager.requestLocationUpdates(
+              LocationManager.GPS_PROVIDER,
+              MINIMUM_TIME_BETWEEN_UPDATES,
+              MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+              mgpsll
+            );
+            goingFast = false;
           }
-          locationManager.removeUpdates(mgpsll);
-          locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            MINIMUM_TIME_BETWEEN_UPDATES,
-            MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
-            mgpsll
-          );
-          goingFast = false;
         }
       }
       lastLoc = location;
