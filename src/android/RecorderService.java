@@ -54,8 +54,9 @@ import android.os.IBinder;
 import android.os.Binder;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 
-import info.snowhow.R;
 
 
 public class RecorderService extends Service {
@@ -94,6 +95,7 @@ public class RecorderService extends Service {
   protected Location lastLoc;
   protected boolean goingFast = false;
   protected boolean adaptiveRecording = false;
+  protected String applicationName = "snowhow";
 
 
   public class LocalBinder extends Binder {
@@ -114,6 +116,16 @@ public class RecorderService extends Service {
     editor = sharedPref.edit();
     locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     Log.d(LOG_TAG, "locationManager initialized, starting intent");
+
+    try {
+        PackageManager packageManager = this.getPackageManager();
+        PackageInfo packageInfo = packageManager.getPackageInfo(this.getPackageName(), 0);
+        applicationName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
+    } catch(android.content.pm.PackageManager.NameNotFoundException e) {
+        /* do nothing, fallback is used as name */
+    }
+
+
     registerReceiver(RecorderServiceBroadcastReceiver, new IntentFilter(ifString));
     startGPSS();
   }
@@ -176,16 +188,18 @@ public class RecorderService extends Service {
       editor.putBoolean("adaptiveRecording", adaptiveRecording);
       editor.commit();
     }
+
     Intent bcRecI = new Intent(ifString);
     PendingIntent pend = PendingIntent.getBroadcast(this, 0, bcRecI, 0);
     note = new Notification.Builder(this)
-      .setContentTitle("snowhow gps tracking")
-      .setSmallIcon(R.drawable.icon)
+      .setContentTitle(applicationName + " GPS tracking")
+      .setSmallIcon(android.R.drawable.ic_menu_mylocation)
       .setOngoing(true)
       .setAutoCancel(true)
       .setDeleteIntent(pend)
       .setContentIntent(pend)
       .setContentText("No location yet. Click to quit recording.");
+
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
     nm.notify(0, note.build());
 
@@ -242,7 +256,7 @@ public class RecorderService extends Service {
     // Cancel the persistent notification.
     nm.cancel(0);
     // Tell the user we stopped.
-    Toast.makeText(this, "snowhow: track recording service stopped", Toast.LENGTH_SHORT).show();
+    Toast.makeText(this, applicationName + ": GPS logging stopped", Toast.LENGTH_SHORT).show();
   }
 
 
@@ -386,7 +400,7 @@ public class RecorderService extends Service {
       }
       if (location.getProvider().equals(LocationManager.GPS_PROVIDER) && firstGPSfix == false) {
         Log.d(LOG_TAG, "removed network LocationListener");
-        Toast.makeText(RecorderService.this, "snowhow: on GPS logging now", Toast.LENGTH_SHORT).show();
+        Toast.makeText(RecorderService.this, applicationName + ": GPS logging started", Toast.LENGTH_SHORT).show();
         firstGPSfix = true;
         locationManager.removeUpdates(mnetll);
       }
