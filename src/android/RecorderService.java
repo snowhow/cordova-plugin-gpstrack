@@ -165,8 +165,8 @@ public class RecorderService extends Service {
     // stopped, so return sticky.
 
     if (intent == null) {
-      Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       tf = sharedPref.getString("runningTrackFile", "");
+      Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
       adaptiveRecording = sharedPref.getBoolean("adaptiveRecording", false);
       int count = sharedPref.getInt("count", 0);
@@ -203,7 +203,6 @@ public class RecorderService extends Service {
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
     nm.notify(0, note.build());
 
-    String trackName = intent.getStringExtra("trackName");
     recording = true;
     Log.d(LOG_TAG, "recording in handleIntent");
     try {   // create directory first, if it does not exist
@@ -216,6 +215,7 @@ public class RecorderService extends Service {
       myWriter = new RandomAccessFile(tf, "rw");
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
+        String trackName = intent.getStringExtra("trackName");
         String trackHead = initTrack(trackName).toString();
         myWriter.write(trackHead.getBytes());
         // we want to write JSON manually for streamed writing
