@@ -46,6 +46,7 @@ import android.content.BroadcastReceiver;
 
 import android.app.NotificationManager;
 import android.app.Notification;
+import android.support.v4.app.NotificationCompat;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.IntentService;
@@ -78,7 +79,7 @@ public class RecorderService extends Service {
   protected LocationManager locationManager;
   protected int locations = 0;
   public NotificationManager nm;
-  public Notification.Builder note;
+  public NotificationCompat.Builder note;
   protected RandomAccessFile myWriter;
   protected long start_ts = System.currentTimeMillis();
   protected CallbackContext cbctx;
@@ -191,7 +192,7 @@ public class RecorderService extends Service {
 
     Intent bcRecI = new Intent(ifString);
     PendingIntent pend = PendingIntent.getBroadcast(this, 0, bcRecI, 0);
-    note = new Notification.Builder(this)
+    note = new NotificationCompat.Builder(this)
       .setContentTitle(applicationName + " GPS tracking")
       .setSmallIcon(android.R.drawable.ic_menu_mylocation)
       .setOngoing(true)
