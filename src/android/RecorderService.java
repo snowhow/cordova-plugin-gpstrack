@@ -69,6 +69,10 @@ public class RecorderService extends Service {
   private static final long SPEED_LIMIT = 5; // in meter per second
 
   protected float minimumPrecision = 0;
+  protected long distanceChange = MINIMUM_DISTANCE_CHANGE_FOR_UPDATES;
+  protected long updateTime = MINIMUM_TIME_BETWEEN_UPDATES;
+  protected long updateTimeFast = MINIMUM_TIME_BETWEEN_UPDATES_FAST;
+  protected long speedLimit = SPEED_LIMIT;
   protected int speedChangeDelay = 0;
   private static final long SPEED_CHANGE_COUNT = 5;
 
@@ -168,6 +172,10 @@ public class RecorderService extends Service {
       tf = sharedPref.getString("runningTrackFile", "");
       Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
       minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
+      distanceChange = sharedPref.getLong("runningDistanceChange", MINIMUM_DISTANCE_CHANGE_FOR_UPDATES);
+      updateTime = sharedPref.getLong("runningUpdateTime", MINIMUM_TIME_BETWEEN_UPDATES);
+      updateTimeFast = sharedPref.getLong("runningUpdateTimeFast", MINIMUM_TIME_BETWEEN_UPDATES_FAST);
+      speedLimit = sharedPref.getLong("runningSpeedLimit", SPEED_LIMIT);
       adaptiveRecording = sharedPref.getBoolean("adaptiveRecording", false);
       int count = sharedPref.getInt("count", 0);
       if (count > 0) {
@@ -182,9 +190,17 @@ public class RecorderService extends Service {
       tf = intent.getStringExtra("fileName");
       Log.d(LOG_TAG, "FILENAME for recording is "+tf);
       minimumPrecision = intent.getFloatExtra("precision", 0);
+      distanceChange = intent.getLongExtra("distance_change", MINIMUM_DISTANCE_CHANGE_FOR_UPDATES);
+      updateTime = intent.getLongExtra("update_time", MINIMUM_TIME_BETWEEN_UPDATES);
+      updateTimeFast = intent.getLongExtra("update_time_fast", MINIMUM_TIME_BETWEEN_UPDATES_FAST);
+      speedLimit = intent.getLongExtra("speed_limit", SPEED_LIMIT);
       adaptiveRecording = intent.getBooleanExtra("adaptiveRecording", false);
       editor.putString("runningTrackFile", tf);
       editor.putFloat("runningPrecision", minimumPrecision);
+      editor.putLong("runningDistanceChange", distanceChange);
+      editor.putLong("runningUpdateTime", updateTime);
+      editor.putLong("runningUpdateTimeFast", updateTimeFast);
+      editor.putLong("runningSpeedLimit", speedLimit);
       editor.putBoolean("adaptiveRecording", adaptiveRecording);
       editor.commit();
     }
@@ -227,15 +243,15 @@ public class RecorderService extends Service {
     }
     locationManager.requestLocationUpdates(
       LocationManager.GPS_PROVIDER,
-      MINIMUM_TIME_BETWEEN_UPDATES,
-      MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+      updateTime,
+      distanceChange,
       mgpsll
     );
     if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
       locationManager.requestLocationUpdates(
         LocationManager.NETWORK_PROVIDER,
-        MINIMUM_TIME_BETWEEN_UPDATES,
-        MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+        updateTime,
+        distanceChange,
         mnetll
       );
     }
@@ -419,13 +435,13 @@ public class RecorderService extends Service {
             Log.d(LOG_TAG, "travelling fast --- switch to fast update");
             if (gpss != null) {
               gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "
-                  +MINIMUM_TIME_BETWEEN_UPDATES_FAST+"}");
+                  +updateTimeFast+"}");
             }
             locationManager.removeUpdates(mgpsll);
             locationManager.requestLocationUpdates(
               LocationManager.GPS_PROVIDER,
-              MINIMUM_TIME_BETWEEN_UPDATES_FAST,
-              MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+              updateTimeFast,
+              distanceChange,
               mgpsll
             );
             goingFast = true;
@@ -437,13 +453,13 @@ public class RecorderService extends Service {
             Log.d(LOG_TAG, "travelling slow --- switch to slow update");
             if (gpss != null) {
               gpss.sendString("{ \"type\": \"status\", \"msg\": \"slowUpdate\", \"interval\": "
-                  +MINIMUM_TIME_BETWEEN_UPDATES+"}");
+                  +updateTime+"}");
             }
             locationManager.removeUpdates(mgpsll);
             locationManager.requestLocationUpdates(
               LocationManager.GPS_PROVIDER,
-              MINIMUM_TIME_BETWEEN_UPDATES,
-              MINIMUM_DISTANCE_CHANGE_FOR_UPDATES,
+              updateTime,
+              distanceChange,
               mgpsll
             );
             goingFast = false;
@@ -455,7 +471,7 @@ public class RecorderService extends Service {
       locations += 1;
       editor.putInt("count", locations);
       editor.commit();
-      long gpsInterval = (goingFast) ? (MINIMUM_TIME_BETWEEN_UPDATES_FAST/1000) : (MINIMUM_TIME_BETWEEN_UPDATES/1000);
+      long gpsInterval = (goingFast) ? (updateTimeFast/1000) : (updateTime/1000);
       note.setContentText("Click to stop track recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
       try {
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
