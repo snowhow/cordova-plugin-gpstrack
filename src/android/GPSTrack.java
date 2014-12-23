@@ -24,15 +24,21 @@ public class GPSTrack extends CordovaPlugin {
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
     if (action.equals("record")) {
-      final String trackFile = args.getString(0);
-      final float precision = (float) args.getDouble(1);
+      String trackFile = args.getString(0);
+      final JSONObject details = args.getJSONObject(1);
       final boolean adaptiveRecording = (boolean) args.getBoolean(2);
       final String trackName = args.getString(3);
+
+      final float precision = (float) details.getDouble("precision");
+      final long distanceChange = details.getLong("distance_change");
+      final long updateTime = details.getLong("update_time");
+      final long updateTimeFast = details.getLong("update_time_fast");
+      final long speedLimit = details.getLong("speed_limit");
+
       if (trackFile.indexOf("file:///") > -1) {
-        record(trackFile.substring(7), precision, adaptiveRecording, trackName);
-      } else {
-        record(trackFile, precision, adaptiveRecording, trackName);
+          trackFile = trackFile.substring(7);
       }
+      record(trackFile, precision, distanceChange, updateTime, updateTimeFast, speedLimit, adaptiveRecording, trackName);
       JSONObject obj = new JSONObject();
       obj.put("test", 1);
       PluginResult res = new PluginResult(PluginResult.Status.OK, obj);
@@ -59,13 +65,25 @@ public class GPSTrack extends CordovaPlugin {
     return true;
   }
 
-  public void record(final String trackFile, final float precision, final boolean adaptiveRecording, 
+  public void record(final String trackFile, final float precision, final long distanceChange, final long updateTime, final long updateTimeFast, final long speedLimit, final boolean adaptiveRecording, 
       String trackName) {
     Context context = cordova.getActivity().getApplicationContext();
     Intent intent = new Intent(context, RecorderService.class);
     // intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     intent.putExtra("fileName", trackFile);
     intent.putExtra("precision", precision);
+    if (distanceChange > 0) {
+        intent.putExtra("distance_change", distanceChange);
+    }
+    if (updateTime > 0) {
+        intent.putExtra("update_time", updateTime);
+    }
+    if (updateTimeFast > 0) {
+        intent.putExtra("update_time_fast", updateTimeFast);
+    }
+    if (speedLimit > 0) {
+        intent.putExtra("speed_limit", speedLimit);
+    }
     intent.putExtra("adaptiveRecording", adaptiveRecording);
     intent.putExtra("trackName", trackName);
     Log.d(LOG_TAG, "in record ... should start intent now");

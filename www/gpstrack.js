@@ -37,10 +37,9 @@ GPSTrack.prototype.record = function(track, options, succ, err) {
       succ(result);
     }
   };
-  var precision = options.precision || 35,
-    adaptiveRecording = options.adaptiveRecording || false,
+  var adaptiveRecording = options.adaptiveRecording || false,
     trackName = options.trackName || "snowhowtrack";
-  exec(win, err, "GPSTrack", "record", [track, precision, adaptiveRecording, trackName]);
+  exec(win, err, "GPSTrack", "record", [track, options, adaptiveRecording, trackName]);
 };
 
 /**

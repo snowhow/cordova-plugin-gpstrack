@@ -22,7 +22,7 @@ Quick Example
     var precision = 30;   // GPS signal needs at least 30 meters precision
     var tracker = new GPSTrack();
 
-    tracker.record(fn, precision, function(res) {
+    tracker.record(fileName, { precision: precision }, function(res) {
       console.log("GPStracker record: success for tracker");
     }, function(err) { console.log("error on tracker"); } );
     tracker.listen(function(succ) {
