@@ -287,7 +287,6 @@ public class RecorderService extends Service {
       Log.d(LOG_TAG, "unable to stop gpss");
       Log.d(LOG_TAG, "stack", e);
     }
-    // deleteLockFile();
     locationManager.removeUpdates(mgpsll);
     locationManager.removeUpdates(mnetll);
     locationManager = null;
@@ -316,18 +315,6 @@ public class RecorderService extends Service {
       delFile.delete();
     } catch (IOException e) {
       Log.d(LOG_TAG, "io delete error. delete");
-    }
-  }
-
-  public void deleteLockFile() {
-    if (tf == null || tf == "") {
-      return;
-    }
-    try {
-      File lockFile = new File(tf+".lock");
-      lockFile.delete();
-    } catch(Exception e) {
-      Log.d(LOG_TAG, "io err: cannot delete lockfile");
     }
   }
 
