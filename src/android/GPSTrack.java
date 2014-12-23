@@ -29,11 +29,12 @@ public class GPSTrack extends CordovaPlugin {
       final boolean adaptiveRecording = (boolean) args.getBoolean(2);
       final String trackName = args.getString(3);
 
-      final float precision = (float) details.getDouble("precision");
-      final long distanceChange = details.getLong("distance_change");
-      final long updateTime = details.getLong("update_time");
-      final long updateTimeFast = details.getLong("update_time_fast");
-      final long speedLimit = details.getLong("speed_limit");
+      // set some default values here, see RecorderService for explanation
+      final float precision = (float) details.optDouble("precision", 30);
+      final long distanceChange = details.optLong("distance_change", 10);
+      final long updateTime = details.optLong("update_time", 5000);
+      final long updateTimeFast = details.optLong("update_time_fast", 1000);
+      final long speedLimit = details.optLong("speed_limit", 5);
 
       if (trackFile.indexOf("file:///") > -1) {
           trackFile = trackFile.substring(7);
