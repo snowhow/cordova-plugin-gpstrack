@@ -5,9 +5,6 @@
 */
 package info.snowhow.plugin;
 
-import org.apache.cordova.CallbackContext;
-import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -86,13 +83,11 @@ public class RecorderService extends Service {
   public NotificationCompat.Builder note;
   protected RandomAccessFile myWriter;
   protected long start_ts = System.currentTimeMillis();
-  protected CallbackContext cbctx;
 
   protected MyLocationListener mgpsll, mnetll;
   protected BroadcastReceiver bcrc;
   protected String tf;
   protected String ifString = "snowhow_gpstrack_intent";
-  protected Context cordova;
   protected int runningID;
   protected SharedPreferences sharedPref;
   protected SharedPreferences.Editor editor;
