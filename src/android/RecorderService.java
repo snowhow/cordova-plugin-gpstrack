@@ -85,7 +85,6 @@ public class RecorderService extends Service {
   protected long start_ts = System.currentTimeMillis();
 
   protected MyLocationListener mgpsll, mnetll;
-  protected BroadcastReceiver bcrc;
   protected String tf;
   protected String ifString = "snowhow_gpstrack_intent";
   protected int runningID;
@@ -201,16 +200,28 @@ public class RecorderService extends Service {
       editor.commit();
     }
 
-    Intent bcRecI = new Intent(ifString);
-    PendingIntent pend = PendingIntent.getBroadcast(this, 0, bcRecI, 0);
+    Intent cordovaMainIntent;
+    try {
+      PackageManager packageManager = this.getPackageManager();
+      cordovaMainIntent = packageManager.getLaunchIntentForPackage(this.getPackageName());
+      Log.d(LOG_TAG, "got cordovaMainIntent "+ cordovaMainIntent);
+      if (cordovaMainIntent == null) {
+        throw new PackageManager.NameNotFoundException();
+      }
+    } catch (PackageManager.NameNotFoundException e) {
+      cordovaMainIntent = new Intent();
+    }
+    PendingIntent pend = PendingIntent.getActivity(this, 0, cordovaMainIntent, 0);
+    PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ifString), 0);
+    NotificationCompat.Action stop =
+          new NotificationCompat.Action.Builder(android.R.drawable.ic_delete, "Stop recording", pendingIntent).build();
     note = new NotificationCompat.Builder(this)
       .setContentTitle(applicationName + " GPS tracking")
       .setSmallIcon(android.R.drawable.ic_menu_mylocation)
       .setOngoing(true)
-      .setAutoCancel(true)
-      .setDeleteIntent(pend)
       .setContentIntent(pend)
-      .setContentText("No location yet. Click to quit recording.");
+      .setContentText("No location yet.");
+    note.addAction(stop);
 
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
     nm.notify(0, note.build());
@@ -455,7 +466,7 @@ public class RecorderService extends Service {
       editor.putInt("count", locations);
       editor.commit();
       long gpsInterval = (goingFast) ? (updateTimeFast/1000) : (updateTime/1000);
-      note.setContentText("Click to stop track recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
+      note.setContentText("recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
       try {
         String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
               +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\""
