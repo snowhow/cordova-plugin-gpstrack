@@ -1,4 +1,4 @@
 # TODO
 
- * communication between app and service if app is running
+ * rename "coords" return type to "location" (breaking change)
 

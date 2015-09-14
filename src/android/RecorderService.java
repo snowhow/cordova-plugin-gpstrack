@@ -58,7 +58,7 @@ import android.content.pm.PackageManager;
 
 
 public class RecorderService extends Service {
-  private static final String GPS_TRACK_VERSION = "0.2.1";
+  private static final String GPS_TRACK_VERSION = "0.2.2";
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
@@ -468,13 +468,16 @@ public class RecorderService extends Service {
       long gpsInterval = (goingFast) ? (updateTimeFast/1000) : (updateTime/1000);
       note.setContentText("recording ("+locations+" points, "+gpsInterval+" secs tracking interval).");
       try {
-        String locString = "["+location.getLongitude()+","+location.getLatitude()+","+location.getAltitude()
+        String locString = "["+location.getLongitude()+","+location.getLatitude()+","
+              +Math.round(location.getAltitude())
               +","+location.getTime()+","+location.getAccuracy()+",\""+location.getProvider()+"\""
               +","+gpsInterval+","+speed+","+adaptiveRecording+"]";
         int pointCount = sharedPref.getInt("count", 0);
         String gpssString = "{\"type\":\"coords\",\"coords\":"+locString
           +",\"pointCount\":"+pointCount+",\"speed\":"+speed+",\"speedType\":\""+speedType+"\","
-          +"\"interval\":"+gpsInterval+"}";
+          +"\"interval\":"+gpsInterval
+          +",\"bearing\":"+Math.round(location.getBearing())
+          +"}";
         if (gpss != null) {
           gpss.sendString(gpssString);
         } else {
