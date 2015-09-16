@@ -156,8 +156,10 @@ public class RecorderService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
-    if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-      showNoGPSAlert();
+    if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
+      if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+        showNoGPSAlert();
+      }
     }
     runningID = startId;
     // We want this service to continue running until it is explicitly
@@ -248,12 +250,16 @@ public class RecorderService extends Service {
     } catch (IOException e) {
       Log.d(LOG_TAG, "io error. cannot write to file "+tf);
     }
-    locationManager.requestLocationUpdates(
-      LocationManager.GPS_PROVIDER,
-      updateTime,
-      distanceChange,
-      mgpsll
-    );
+    if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
+      locationManager.requestLocationUpdates(
+        LocationManager.GPS_PROVIDER,
+        updateTime,
+        distanceChange,
+        mgpsll
+      );
+    } else {
+      showNoGPSAlert();
+    }
     if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
       locationManager.requestLocationUpdates(
         LocationManager.NETWORK_PROVIDER,
