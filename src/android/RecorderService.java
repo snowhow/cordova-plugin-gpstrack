@@ -31,6 +31,7 @@ import android.view.WindowManager;
 import java.io.RandomAccessFile;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -58,7 +59,7 @@ import android.content.pm.PackageManager;
 
 
 public class RecorderService extends Service {
-  private static final String GPS_TRACK_VERSION = "0.2.2";
+  private static final String GPS_TRACK_VERSION = "0.3.0";
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
@@ -378,6 +379,22 @@ public class RecorderService extends Service {
 
   public String getTrackFilename() {
     return tf;
+  }
+
+  public JSONObject getTrack() {
+    JSONObject t = new JSONObject();
+    try {
+      File file = new File(tf);
+      FileInputStream fis = new FileInputStream(file);
+      byte[] data = new byte[(int) file.length()];
+      fis.read(data);
+      fis.close();
+      String str = new String(data, "UTF-8");
+      t = new JSONObject(str);
+    } catch (Exception e) {
+      Log.d(LOG_TAG, "getTrack:", e);
+    }
+    return t;
   }
 
 

@@ -14,6 +14,8 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import android.util.Log;
 
+import org.json.JSONObject;
+
 import info.snowhow.plugin.RecorderService;
 
 /**
@@ -44,6 +46,10 @@ public class GPSServer extends WebSocketServer {
     Log.d(LOG_TAG, "got msg from UI: ->"+message+"<-");
     if (message.equals("quit")) {
       rs.stopRecording();
+    } else if (message.equals("getTrack")) {
+      String track = rs.getTrack().toString();
+      Log.d(LOG_TAG, "got track from Recorder "+track+"<-");
+      sendString("{ \"type\": \"track\", \"msg\": "+rs.getTrack().toString()+" }");
     } else if (message.equals("getFilename")) {
       sendString("{ \"type\": \"filename\", \"msg\": \""+rs.getTrackFilename()+"\" }");
     }
