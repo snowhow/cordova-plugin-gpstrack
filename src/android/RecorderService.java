@@ -79,6 +79,7 @@ public class RecorderService extends Service {
   protected Location lastLoc;
   protected boolean goingFast = false;
   protected boolean adaptiveRecording = false;
+  public boolean gpsDisabled = false;
   protected String applicationName = "snowhow";
 
 
@@ -118,7 +119,7 @@ public class RecorderService extends Service {
   private void showNoGPSAlert() {
     Log.i(LOG_TAG, "No GPS available --- send error msg via websocket");
     if (gpss != null) {
-      gpss.sendString("{ \"type\": \"status\", \"msg\": \"GPS not active\" }");
+      gpss.sendString("{ \"type\": \"error\", \"msg\": \"gpsUnavailable\" }");
     }
 //     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 //     alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
@@ -147,6 +148,7 @@ public class RecorderService extends Service {
     Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
     if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
       if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        gpsDisabled = true;
         showNoGPSAlert();
       }
     }
@@ -240,11 +242,21 @@ public class RecorderService extends Service {
       Log.d(LOG_TAG, "io error. cannot write to file " + tf);
     }
     if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
+      if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        Log.d(LOG_TAG, "GPS_PROVIDER not enabled, gpsDiabled = true ...");
+        gpsDisabled = true;
+        showNoGPSAlert();
+        return START_NOT_STICKY;
+      }
       if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        Log.d(LOG_TAG, "No access to GPS_PROVIDER, gpsDiabled = true ...");
+        gpsDisabled = true;
         showNoGPSAlert();
         // cannot request permissions as we are in a service here
         return START_NOT_STICKY;
       }
+      Log.d(LOG_TAG, "access to GPS_PROVIDER granted, start...");
+      gpsDisabled = false;
       locationManager.requestLocationUpdates(
               LocationManager.GPS_PROVIDER,
               updateTime,
@@ -252,9 +264,12 @@ public class RecorderService extends Service {
               mgpsll
       );
     } else {
+      gpsDisabled = true;
+      Log.d(LOG_TAG, "NO GPS_PROVIDER in AllProvides .... show error");
       showNoGPSAlert();
     }
     if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
+      Log.d(LOG_TAG, "access to NETWORK_PROVIDER granted, start...");
       locationManager.requestLocationUpdates(
               LocationManager.NETWORK_PROVIDER,
               updateTime,
@@ -283,7 +298,7 @@ public class RecorderService extends Service {
     try {
       gpss.sendString("{ \"type\": \"status\", \"msg\": \"disconnect\" }");
       Log.d(LOG_TAG, "stopping gpss ...");
-      gpss.stop(1000);
+      gpss.stop(3000);
       Log.d(LOG_TAG, "stopped gpss ...");
     } catch (Exception e) {
       Log.d(LOG_TAG, "unable to stop gpss");

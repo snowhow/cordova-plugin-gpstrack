@@ -51,6 +51,8 @@ public class GPSServer extends WebSocketServer {
     Log.d(LOG_TAG, "got msg from UI: ->"+message+"<-");
     if (message.equals("quit")) {
       rs.stopRecording();
+    } else if (message.equals("getGPSState")) {
+      sendString("{ \"type\": \"gpsState\", \"msg\": \""+rs.gpsDisabled+"\", \"disabled\": "+rs.gpsDisabled+" }");
     } else if (message.equals("getTrack")) {
       String track = rs.getTrack().toString();
       Log.d(LOG_TAG, "got track from Recorder "+track+"<-");
