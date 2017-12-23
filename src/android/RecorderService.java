@@ -5,57 +5,41 @@
 */
 package info.snowhow.plugin;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import android.content.Context;
-import android.util.Log;
-import android.os.Environment;
-import android.os.Message;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.preference.PreferenceManager;
-
+import android.Manifest;
 import android.app.Activity;
-// import android.app.AlertDialog;
-// import android.app.AlertDialog.Builder;
-import android.content.DialogInterface;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Binder;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.os.Message;
+import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 import android.widget.Toast;
-import android.view.WindowManager;
 
-import java.io.RandomAccessFile;
-import java.io.BufferedWriter;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URL;
-import java.net.InetSocketAddress;
-import java.net.Inet4Address;
-import java.net.InetAddress;
+import java.io.RandomAccessFile;
 
-import android.content.BroadcastReceiver;
-
-import android.app.NotificationManager;
-import android.app.Notification;
-import android.support.v4.app.NotificationCompat;
-import android.app.Activity;
-import android.app.PendingIntent;
-import android.app.IntentService;
-import android.app.Service;
-import android.os.IBinder;
-import android.os.Binder;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-
+// import android.app.AlertDialog;
+// import android.app.AlertDialog.Builder;
 
 
 public class RecorderService extends Service {
@@ -114,14 +98,15 @@ public class RecorderService extends Service {
     mnetll = new MyLocationListener();
     sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
     editor = sharedPref.edit();
+    editor.apply();
     locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     Log.d(LOG_TAG, "locationManager initialized, starting intent");
 
     try {
-        PackageManager packageManager = this.getPackageManager();
-        PackageInfo packageInfo = packageManager.getPackageInfo(this.getPackageName(), 0);
-        applicationName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
-    } catch(android.content.pm.PackageManager.NameNotFoundException e) {
+      PackageManager packageManager = this.getPackageManager();
+      PackageInfo packageInfo = packageManager.getPackageInfo(this.getPackageName(), 0);
+      applicationName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
+    } catch (android.content.pm.PackageManager.NameNotFoundException e) {
         /* do nothing, fallback is used as name */
     }
 
@@ -133,7 +118,7 @@ public class RecorderService extends Service {
   private void showNoGPSAlert() {
     Log.i(LOG_TAG, "No GPS available --- send error msg via websocket");
     if (gpss != null) {
-        gpss.sendString("{ \"type\": \"status\", \"msg\": \"GPS not active\" }");
+      gpss.sendString("{ \"type\": \"status\", \"msg\": \"GPS not active\" }");
     }
 //     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 //     alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
@@ -161,7 +146,7 @@ public class RecorderService extends Service {
   public int onStartCommand(Intent intent, int flags, int startId) {
     Log.i(LOG_TAG, "Received start id " + startId + ": " + intent);
     if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
-      if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+      if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
         showNoGPSAlert();
       }
     }
@@ -171,7 +156,7 @@ public class RecorderService extends Service {
 
     if (intent == null) {
       tf = sharedPref.getString("runningTrackFile", "");
-      Log.w(LOG_TAG, "Intent is null, trying to continue to write to file "+tf+" lm "+locationManager);
+      Log.w(LOG_TAG, "Intent is null, trying to continue to write to file " + tf + " lm " + locationManager);
       minimumPrecision = sharedPref.getFloat("runningPrecision", 0);
       distanceChange = sharedPref.getLong("runningDistanceChange", MINIMUM_DISTANCE_CHANGE_FOR_UPDATES);
       updateTime = sharedPref.getLong("runningUpdateTime", MINIMUM_TIME_BETWEEN_UPDATES);
@@ -182,14 +167,14 @@ public class RecorderService extends Service {
       if (count > 0) {
         firstPoint = false;
       }
-      if (tf == null || tf == "") {
+      if (tf == null || tf.equals("")) {
         Log.e(LOG_TAG, "No trackfile found ... exit clean here");
         cleanUp();
         return START_NOT_STICKY;
       }
     } else {
       tf = intent.getStringExtra("fileName");
-      Log.d(LOG_TAG, "FILENAME for recording is "+tf);
+      Log.d(LOG_TAG, "FILENAME for recording is " + tf);
       minimumPrecision = intent.getFloatExtra("precision", 0);
       distanceChange = intent.getLongExtra("distance_change", MINIMUM_DISTANCE_CHANGE_FOR_UPDATES);
       updateTime = intent.getLongExtra("update_time", MINIMUM_TIME_BETWEEN_UPDATES);
@@ -210,7 +195,7 @@ public class RecorderService extends Service {
     try {
       PackageManager packageManager = this.getPackageManager();
       cordovaMainIntent = packageManager.getLaunchIntentForPackage(this.getPackageName());
-      Log.d(LOG_TAG, "got cordovaMainIntent "+ cordovaMainIntent);
+      Log.d(LOG_TAG, "got cordovaMainIntent " + cordovaMainIntent);
       if (cordovaMainIntent == null) {
         throw new PackageManager.NameNotFoundException();
       }
@@ -220,13 +205,13 @@ public class RecorderService extends Service {
     PendingIntent pend = PendingIntent.getActivity(this, 0, cordovaMainIntent, 0);
     PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ifString), 0);
     NotificationCompat.Action stop =
-          new NotificationCompat.Action.Builder(android.R.drawable.ic_delete, "Stop recording", pendingIntent).build();
+            new NotificationCompat.Action.Builder(android.R.drawable.ic_delete, "Stop recording", pendingIntent).build();
     note = new NotificationCompat.Builder(this)
-      .setContentTitle(applicationName + " GPS tracking")
-      .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-      .setOngoing(true)
-      .setContentIntent(pend)
-      .setContentText("No location yet.");
+            .setContentTitle(applicationName + " GPS tracking")
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setOngoing(true)
+            .setContentIntent(pend)
+            .setContentText("No location yet.");
     note.addAction(stop);
 
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
@@ -238,9 +223,9 @@ public class RecorderService extends Service {
       File trackFile = new File(tf).getParentFile();
       if (!trackFile.exists()) {
         trackFile.mkdirs();
-        Log.d(LOG_TAG, "done creating path for trackfile: "+trackFile);
+        Log.d(LOG_TAG, "done creating path for trackfile: " + trackFile);
       }
-      Log.d(LOG_TAG, "going to create RandomAccessFile "+tf);
+      Log.d(LOG_TAG, "going to create RandomAccessFile " + tf);
       myWriter = new RandomAccessFile(tf, "rw");
       if (intent != null) {   // start new file
         // myWriter.setLength(0);    // delete all contents from file
@@ -248,28 +233,33 @@ public class RecorderService extends Service {
         String trackHead = initTrack(trackName).toString();
         myWriter.write(trackHead.getBytes());
         // we want to write JSON manually for streamed writing
-        myWriter.seek(myWriter.length()-1);
+        myWriter.seek(myWriter.length() - 1);
         myWriter.write(",\"coordinates\":[]}".getBytes());
       }
     } catch (IOException e) {
-      Log.d(LOG_TAG, "io error. cannot write to file "+tf);
+      Log.d(LOG_TAG, "io error. cannot write to file " + tf);
     }
     if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
+      if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        showNoGPSAlert();
+        // cannot request permissions as we are in a service here
+        return START_NOT_STICKY;
+      }
       locationManager.requestLocationUpdates(
-        LocationManager.GPS_PROVIDER,
-        updateTime,
-        distanceChange,
-        mgpsll
+              LocationManager.GPS_PROVIDER,
+              updateTime,
+              distanceChange,
+              mgpsll
       );
     } else {
       showNoGPSAlert();
     }
     if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
       locationManager.requestLocationUpdates(
-        LocationManager.NETWORK_PROVIDER,
-        updateTime,
-        distanceChange,
-        mnetll
+              LocationManager.NETWORK_PROVIDER,
+              updateTime,
+              distanceChange,
+              mnetll
       );
     }
     return START_STICKY;
@@ -278,10 +268,6 @@ public class RecorderService extends Service {
   @Override
   public IBinder onBind(Intent intent) {
     return mBinder;
-  }
-
-  public void handleMessage(Message msg) {
-    Log.i(LOG_TAG, "handleMessage running...");
   }
 
   @Override
@@ -306,7 +292,7 @@ public class RecorderService extends Service {
     locationManager.removeUpdates(mgpsll);
     locationManager.removeUpdates(mnetll);
     locationManager = null;
-    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+    // SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
     editor.clear();
     editor.commit();
     unregisterReceiver(RecorderServiceBroadcastReceiver);
@@ -327,7 +313,7 @@ public class RecorderService extends Service {
     try {
       myWriter.close();
       File delFile = new File(tf);
-      Log.d(LOG_TAG, "deleting file "+tf);
+      Log.d(LOG_TAG, "deleting file " + tf);
       delFile.delete();
     } catch (IOException e) {
       Log.d(LOG_TAG, "io delete error. delete");
@@ -342,13 +328,13 @@ public class RecorderService extends Service {
       prop.put("start_ts", start_ts);
       prop.put("name", trackName);
       prop.put("givenName", trackName);
-      prop.put("localname", "snowhow_"+start_ts+".json");
+      prop.put("localname", "snowhow_" + start_ts + ".json");
       prop.put("rec_type", "gpstrack_plugin");
       prop.put("plugin_version", GPS_TRACK_VERSION);
       obj.put("type", "LineString");
       obj.put("properties", prop);
     } catch (JSONException e) {
-      Log.d(LOG_TAG, "jsonObject error: "+e);
+      Log.d(LOG_TAG, "jsonObject error: " + e);
     }
     return obj;
   }
@@ -358,9 +344,9 @@ public class RecorderService extends Service {
     try {
       gpss = new GPSServer(8887, this);
       gpss.start();
-      Log.d(LOG_TAG, "starting WS Server on : "+gpss.getAddress());
-      Log.d(LOG_TAG, "Gpssss is "+gpss);
-      gpss.sendString("{ \"type\": \"start\", \"msg\": \"start on "+gpss.getAddress()+"\" }");
+      Log.d(LOG_TAG, "starting WS Server on : " + gpss.getAddress());
+      Log.d(LOG_TAG, "Gpssss is " + gpss);
+      gpss.sendString("{ \"type\": \"start\", \"msg\": \"start on " + gpss.getAddress() + "\" }");
     } catch (Exception e) {
       Log.d(LOG_TAG, "ERROR starting WS Server on Port 8887");
       Log.d(LOG_TAG, "bad:", e);
@@ -420,53 +406,53 @@ public class RecorderService extends Service {
 
     private boolean firstGPSfix = false;
 
-    public MyLocationListener() {
+    MyLocationListener() {
       Log.d(LOG_TAG, "MyLocationListener started successfully");
     }
 
     public void onLocationChanged(Location location) {
       float speed = location.getSpeed();
       String speedType = "gps";
-      if (recording != true) {
+      if (!recording) {
         return;
       }
       if (minimumPrecision > 0 && location.getAccuracy() > minimumPrecision) {
-        Log.d(LOG_TAG, "precision of position not good enough: "+location.getAccuracy()+"m, required: "+minimumPrecision+"m");
+        Log.d(LOG_TAG, "precision of position not good enough: " + location.getAccuracy() + "m, required: " + minimumPrecision + "m");
         return;
       }
-      if (location.getProvider().equals(LocationManager.GPS_PROVIDER) && firstGPSfix == false) {
+      if (location.getProvider().equals(LocationManager.GPS_PROVIDER) && !firstGPSfix) {
         Log.d(LOG_TAG, "removed network LocationListener");
         Toast.makeText(RecorderService.this, applicationName + ": GPS logging started", Toast.LENGTH_SHORT).show();
         firstGPSfix = true;
         locationManager.removeUpdates(mnetll);
       }
-      Log.d(LOG_TAG, "adaptiveRecording: "+adaptiveRecording);
-      if (lastLoc != null && adaptiveRecording == true) {
+      Log.d(LOG_TAG, "adaptiveRecording: " + adaptiveRecording);
+      if (lastLoc != null && adaptiveRecording) {
         if (speed == 0) {
-          long timeDiff = (location.getTime() - lastLoc.getTime())/1000;
-          speed = lastLoc.distanceTo(location)/timeDiff;
+          long timeDiff = (location.getTime() - lastLoc.getTime()) / 1000;
+          speed = lastLoc.distanceTo(location) / timeDiff;
           speedType = "calc";
-          Log.d(LOG_TAG, "speed calc from lastLoc "+timeDiff+" makes speed "+speed);
+          Log.d(LOG_TAG, "speed calc from lastLoc " + timeDiff + " makes speed " + speed);
         }
-        if (speed > SPEED_LIMIT && goingFast == false) {  // faster than 5 m/s, switch to faster GPS interval
+        if (speed > SPEED_LIMIT && !goingFast) {  // faster than 5 m/s, switch to faster GPS interval
           speedChangeDelay++;
           if (speedChangeDelay > SPEED_CHANGE_COUNT) {
             speedChangeDelay = 0;
             Log.d(LOG_TAG, "travelling fast --- switch to fast update");
             if (gpss != null) {
               gpss.sendString("{ \"type\": \"status\", \"msg\": \"fastUpdate\", \"interval\": "
-                  +updateTimeFast+"}");
+                      + updateTimeFast + "}");
             }
             locationManager.removeUpdates(mgpsll);
             locationManager.requestLocationUpdates(
-              LocationManager.GPS_PROVIDER,
-              updateTimeFast,
-              distanceChange,
-              mgpsll
+                    LocationManager.GPS_PROVIDER,
+                    updateTimeFast,
+                    distanceChange,
+                    mgpsll
             );
             goingFast = true;
           }
-        } else if (speed <= SPEED_LIMIT && goingFast == true) {
+        } else if (speed <= SPEED_LIMIT && goingFast) {
           speedChangeDelay++;
           if (speedChangeDelay > SPEED_CHANGE_COUNT) {
             speedChangeDelay = 0;
@@ -513,7 +499,7 @@ public class RecorderService extends Service {
         }
         locString += "]}";
         myWriter.seek(myWriter.length()-2); // remove last 2 byte
-        if (firstPoint == true) {
+        if (firstPoint) {
           firstPoint = false;
         } else {
           locString = ","+locString;
