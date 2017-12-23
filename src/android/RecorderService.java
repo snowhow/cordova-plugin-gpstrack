@@ -43,7 +43,7 @@ import java.io.RandomAccessFile;
 
 
 public class RecorderService extends Service {
-  private static final String GPS_TRACK_VERSION = "0.3.0";
+  private static final String GPS_TRACK_VERSION = "0.4.0";
 
   private static final String LOG_TAG = "GPSTrack";
   private static final long MINIMUM_DISTANCE_CHANGE_FOR_UPDATES = 10; // in Meters
