@@ -37,6 +37,11 @@ public class GPSServer extends WebSocketServer {
 	}
 
 	@Override
+	public void onStart() {
+		Log.d(LOG_TAG, " GPSServer started." );
+	}
+
+	@Override
 	public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
 		this.sendString("{ \"type\": \"status\", \"msg\": \"disconnected\" }");
 	}

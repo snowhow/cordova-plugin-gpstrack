@@ -1,0 +1,22 @@
+{
+  "name": "cordova-plugin-gpstrack",
+  "version": "0.3.0",
+  "description": "Record GPS tracks",
+  "main": "www/gpstrack.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snowhow/cordova-plugin-gpstrack.git"
+  },
+  "author": "info@snowhow.info",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/snowhow/cordova-plugin-gpstrack/issues"
+  },
+  "homepage": "https://github.com/snowhow/cordova-plugin-gpstrack#readme"
+}

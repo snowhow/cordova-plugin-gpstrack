@@ -18,8 +18,8 @@ import android.content.SharedPreferences.Editor;
 import android.preference.PreferenceManager;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.AlertDialog.Builder;
+// import android.app.AlertDialog;
+// import android.app.AlertDialog.Builder;
 import android.content.DialogInterface;
 import android.location.Location;
 import android.location.LocationListener;
@@ -131,27 +131,30 @@ public class RecorderService extends Service {
   }
 
   private void showNoGPSAlert() {
-    Log.i(LOG_TAG, "No GPS available --- show Dialog");
-    AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-    alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
-    .setCancelable(false)
-    .setPositiveButton("GPS Settings", new DialogInterface.OnClickListener() {
-      public void onClick(DialogInterface dialog, int id) {
-        Intent callGPSSettingIntent = new Intent(
-          android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-          callGPSSettingIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          startActivity(callGPSSettingIntent);
-        }
-    });
-    alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-      public void onClick(DialogInterface dialog, int id){
-        stopRecording();
-        dialog.cancel();
-      }
-    });
-    AlertDialog alert = alertDialogBuilder.create();
-    alert.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-    alert.show();
+    Log.i(LOG_TAG, "No GPS available --- send error msg via websocket");
+    if (gpss != null) {
+        gpss.sendString("{ \"type\": \"status\", \"msg\": \"GPS not active\" }");
+    }
+//     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+//     alertDialogBuilder.setMessage("GPS is disabled on your device. Would you like to enable it?")
+//     .setCancelable(false)
+//     .setPositiveButton("GPS Settings", new DialogInterface.OnClickListener() {
+//       public void onClick(DialogInterface dialog, int id) {
+//         Intent callGPSSettingIntent = new Intent(
+//           android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+//           callGPSSettingIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//           startActivity(callGPSSettingIntent);
+//         }
+//     });
+//     alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//       public void onClick(DialogInterface dialog, int id){
+//         stopRecording();
+//         dialog.cancel();
+//       }
+//     });
+//     AlertDialog alert = alertDialogBuilder.create();
+//     alert.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+//     alert.show();
   }
 
   @Override
