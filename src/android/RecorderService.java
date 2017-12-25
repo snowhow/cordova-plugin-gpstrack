@@ -118,6 +118,7 @@ public class RecorderService extends Service {
 
   private void showNoGPSAlert() {
     Log.i(LOG_TAG, "No GPS available --- send error msg via websocket");
+    Toast.makeText(this, applicationName + ": Unable to access GPS", Toast.LENGTH_SHORT).show();
     if (gpss != null) {
       gpss.sendString("{ \"type\": \"error\", \"msg\": \"gpsUnavailable\" }");
     }
