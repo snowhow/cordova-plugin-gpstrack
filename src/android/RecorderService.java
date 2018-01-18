@@ -207,6 +207,10 @@ public class RecorderService extends Service {
     }
     PendingIntent pend = PendingIntent.getActivity(this, 0, cordovaMainIntent, 0);
     PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ifString), 0);
+    String contentText = "recording track.";
+    if (gpsDisabled == true) {
+        contentText = "GPS disabled.";
+    }
     NotificationCompat.Action stop =
             new NotificationCompat.Action.Builder(android.R.drawable.ic_delete, "Stop recording", pendingIntent).build();
     note = new NotificationCompat.Builder(this)
@@ -214,7 +218,7 @@ public class RecorderService extends Service {
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setOngoing(true)
             .setContentIntent(pend)
-            .setContentText("No location yet.");
+            .setContentText(contentText);
     note.addAction(stop);
 
     nm = (NotificationManager) getSystemService(Activity.NOTIFICATION_SERVICE);
@@ -244,13 +248,13 @@ public class RecorderService extends Service {
     }
     if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
       if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-        Log.d(LOG_TAG, "GPS_PROVIDER not enabled, gpsDiabled = true ...");
+        Log.d(LOG_TAG, "GPS_PROVIDER not enabled, gpsDisabled = true ...");
         gpsDisabled = true;
         showNoGPSAlert();
         return START_NOT_STICKY;
       }
       if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-        Log.d(LOG_TAG, "No access to GPS_PROVIDER, gpsDiabled = true ...");
+        Log.d(LOG_TAG, "No access to GPS_PROVIDER, gpsDisabled = true ...");
         gpsDisabled = true;
         showNoGPSAlert();
         // cannot request permissions as we are in a service here
