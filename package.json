@@ -11,12 +11,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/snowhow/cordova-plugin-gpstrack.git"
+    "url": "https://gl.komplett.cc:4433/snowhow/cordova-plugin-gpstrack.git"
   },
   "author": "info@snowhow.info",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/snowhow/cordova-plugin-gpstrack/issues"
+    "url": "https://gl.komplett.cc:4433/snowhow/cordova-plugin-gpstrack/issues"
   },
-  "homepage": "https://github.com/snowhow/cordova-plugin-gpstrack#readme"
+  "homepage": "https://snowhow.info/"
 }
